@@ -1,0 +1,18 @@
+# Build output
+build/
+out/
+vcpkg_installed/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+CMakeUserPresets.json
+
+# Qt / generated
+*.autosave
+CMakeLists.txt.user*
+
+# OS
+Thumbs.db
