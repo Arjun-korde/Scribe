@@ -2,6 +2,8 @@ add_executable(scribe WIN32
     main.cpp
     MainWindow.h
     MainWindow.cpp
+    ../../resources/resources.qrc
+    ../../resources/scribe.rc
 )
 
 target_compile_definitions(scribe PRIVATE PROJECT_VERSION="${PROJECT_VERSION}")
