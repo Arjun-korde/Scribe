@@ -1,7 +1,7 @@
 find_package(GTest CONFIG REQUIRED)
 
 # Pure C++ logic (GoogleTest)
-add_executable(scribe_gtests SmokeGTest.cpp LineEndingTest.cpp EncodingTest.cpp InMemoryBackendTest.cpp DocumentTest.cpp)
+add_executable(scribe_gtests SmokeGTest.cpp LineEndingTest.cpp EncodingTest.cpp InMemoryBackendTest.cpp DocumentTest.cpp CommandRegistryTest.cpp)
 target_link_libraries(scribe_gtests PRIVATE scribe_core GTest::gtest GTest::gtest_main)
 add_test(NAME scribe_gtests COMMAND scribe_gtests)
 
