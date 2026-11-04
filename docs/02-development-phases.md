@@ -30,13 +30,14 @@ Effort assumes part-time work and can be adjusted.
 
 **Goal:** A repo that builds, tests, and runs CI before any feature work.
 
-- [ ] Git repo, `.gitignore`, license, README skeleton
-- [ ] CMake project with Qt 6, CMake presets (debug and release), vcpkg manifest
-- [ ] Empty `MainWindow` that launches
-- [ ] Qt Test and GoogleTest wired into CTest, with one passing test
-- [ ] `.clang-format`, `.clang-tidy`
-- [ ] GitHub Actions: build and test on `windows-latest`
-- [ ] Folder layout from the tech stack document
+- [x] Git repo, `.gitignore`, README skeleton
+- [ ] License (on hold)
+- [x] CMake project with Qt 6, CMake presets (debug and release), vcpkg manifest
+- [x] Empty `MainWindow` that launches
+- [x] Qt Test and GoogleTest wired into CTest, with one passing test
+- [x] `.clang-format`, `.clang-tidy`
+- [x] GitHub Actions: build and test on `windows-latest`
+- [x] Folder layout from the tech stack document
 
 **Exit criteria:** CI is green on an empty app.
 
