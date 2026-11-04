@@ -6,6 +6,8 @@ add_library(scribe_core STATIC
     IDocumentBackend.h
     InMemoryBackend.h
     InMemoryBackend.cpp
+    Document.h
+    Document.cpp
 )
 
 target_include_directories(scribe_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
