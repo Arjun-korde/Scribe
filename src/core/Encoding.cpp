@@ -8,9 +8,9 @@ namespace scribe::core
 namespace
 {
 
-const QByteArray kUtf8Bom = QByteArray::fromHex("EFBBBF");
-const QByteArray kUtf16LeBom = QByteArray::fromHex("FFFE");
-const QByteArray kUtf16BeBom = QByteArray::fromHex("FEFF");
+constexpr QByteArrayView kUtf8Bom = "\xEF\xBB\xBF";
+constexpr QByteArrayView kUtf16LeBom = "\xFF\xFE";
+constexpr QByteArrayView kUtf16BeBom = "\xFE\xFF";
 
 QStringConverter::Encoding converterFor(Encoding encoding)
 {
@@ -27,7 +27,7 @@ QStringConverter::Encoding converterFor(Encoding encoding)
     return QStringConverter::Utf8;
 }
 
-QByteArray bomFor(Encoding encoding)
+QByteArrayView bomFor(Encoding encoding)
 {
     switch (encoding) {
         case Encoding::Utf8:
@@ -47,7 +47,9 @@ QByteArray bomFor(Encoding encoding)
 bool isValidUtf8(const QByteArray& bytes)
 {
     const auto at = [&bytes](qsizetype i) { return static_cast<unsigned char>(bytes.at(i)); };
-    const auto isContinuation = [](unsigned char byte) { return (byte & 0xC0) == 0x80; };
+    const auto isContinuation = [](unsigned char byte) {
+        return (static_cast<unsigned>(byte) & 0xC0U) == 0x80U;
+    };
 
     const qsizetype size = bytes.size();
     qsizetype i = 0;
@@ -166,7 +168,7 @@ EncodingInfo detectEncoding(const QByteArray& bytes)
 
 QString decode(const QByteArray& bytes, const EncodingInfo& info)
 {
-    const QByteArray bom = bomFor(info.encoding);
+    const QByteArrayView bom = bomFor(info.encoding);
     const qsizetype skip = info.hasBom && bytes.startsWith(bom) ? bom.size() : 0;
 
     QStringDecoder decoder(converterFor(info.encoding));
@@ -176,7 +178,7 @@ QString decode(const QByteArray& bytes, const EncodingInfo& info)
 std::optional<QByteArray> encode(const QString& text, const EncodingInfo& info)
 {
     QStringEncoder encoder(converterFor(info.encoding));
-    const QByteArray body = encoder(text);
+    QByteArray body = encoder(text);
     if (encoder.hasError()) {
         return std::nullopt;
     }
@@ -191,7 +193,7 @@ std::optional<QByteArray> encode(const QString& text, const EncodingInfo& info)
     if (!info.hasBom) {
         return body;
     }
-    return bomFor(info.encoding) + body;
+    return QByteArray(bomFor(info.encoding)) + body;
 }
 
 } // namespace scribe::core

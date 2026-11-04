@@ -6,12 +6,13 @@
 
 #include <QString>
 
+#include <cstdint>
 #include <memory>
 
 namespace scribe::core
 {
 
-enum class DocumentError
+enum class DocumentError : std::uint8_t
 {
     None,
     CannotRead,      ///< The file does not exist or cannot be opened for reading.

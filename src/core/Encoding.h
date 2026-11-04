@@ -3,12 +3,13 @@
 #include <QByteArray>
 #include <QString>
 
+#include <cstdint>
 #include <optional>
 
 namespace scribe::core
 {
 
-enum class Encoding
+enum class Encoding : std::uint8_t
 {
     Utf8,
     Utf16Le,

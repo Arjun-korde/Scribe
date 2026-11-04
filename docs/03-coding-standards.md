@@ -8,6 +8,7 @@
 - Build with CMake presets only (`cmake --preset debug`). No qmake, no IDE-only project settings.
 - Warnings are errors in CI. New code must compile without warnings on MSVC.
 - Use separate build directories per configuration (`build/debug`, `build/release`).
+- Plain C arrays are fine for small fixed lists, such as test data. Do not wrap them in `std::array` only to satisfy a tool; `modernize-avoid-c-arrays` is turned off in `.clang-tidy`.
 
 ## 2. Ownership and Pointers
 

@@ -74,16 +74,20 @@ TEST(EncodingRoundTrip, EveryEncodingKeepsTheExactBytes)
     };
     for (const EncodingInfo& info : unicode) {
         const std::optional<QByteArray> bytes = encode(text, info);
-        ASSERT_TRUE(bytes.has_value());
-        EXPECT_EQ(decode(*bytes, info), text);
-        EXPECT_EQ(encode(decode(*bytes, info), info), bytes);
+        if (!bytes.has_value()) {
+            FAIL();
+        }
+        EXPECT_EQ(decode(bytes.value(), info), text);
+        EXPECT_EQ(encode(decode(bytes.value(), info), info), bytes);
     }
 
-    const EncodingInfo ansi{Encoding::Ansi, false};
+    const EncodingInfo ansi{.encoding = Encoding::Ansi, .hasBom = false};
     const std::optional<QByteArray> ansiBytes = encode(ansiText, ansi);
-    ASSERT_TRUE(ansiBytes.has_value());
-    EXPECT_EQ(decode(*ansiBytes, ansi), ansiText);
-    EXPECT_EQ(encode(decode(*ansiBytes, ansi), ansi), ansiBytes);
+    if (!ansiBytes.has_value()) {
+        FAIL();
+    }
+    EXPECT_EQ(decode(ansiBytes.value(), ansi), ansiText);
+    EXPECT_EQ(encode(decode(ansiBytes.value(), ansi), ansi), ansiBytes);
 }
 
 TEST(EncodingRoundTrip, DetectThenDecodeThenEncodeIsLossless)
