@@ -1,0 +1,8 @@
+---
+# Inherit everything from the root .clang-tidy and only relax what tests need.
+InheritParentConfig: true
+
+# Qt Test classes put `private slots:` first and then plain `private:` for fixtures.
+Checks: >
+  -readability-redundant-access-specifiers
+...

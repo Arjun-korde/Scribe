@@ -10,7 +10,11 @@ namespace
 
 Command makeCommand(const QString& id, std::function<void()> callback = [] {})
 {
-    return Command{id, QStringLiteral("Title of ") + id, QString(), std::move(callback), true};
+    return Command{.id = id,
+                   .title = QStringLiteral("Title of ") + id,
+                   .shortcut = QString(),
+                   .callback = std::move(callback),
+                   .enabled = true};
 }
 
 } // namespace

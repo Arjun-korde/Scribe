@@ -1,6 +1,8 @@
 #include "MainWindow.h"
 
+#include "EditorTabs.h"
 #include "EditorWidget.h"
+#include "TabCommands.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -15,6 +17,7 @@ namespace
 {
 
 using scribe::core::DocumentError;
+using scribe::editor::TabCommands;
 
 // Every command id in one place, so a typo is a compile error instead of a dead menu entry.
 constexpr QLatin1String kFileNew("file.new");
@@ -54,16 +57,27 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     : QMainWindow(parent)
     , m_dialogs(std::move(dialogs))
-    , m_editor(new scribe::editor::EditorWidget(this))
+    , m_tabs(new scribe::editor::EditorTabs(this))
 {
     resize(900, 600);
-    setCentralWidget(m_editor);
+    setCentralWidget(m_tabs);
 
     registerCommands();
     buildMenus();
 
-    connect(m_editor, &scribe::editor::EditorWidget::stateChanged, this, &MainWindow::updateTitle);
+    connect(m_tabs, &scribe::editor::EditorTabs::currentEditorStateChanged, this,
+            &MainWindow::updateTitle);
     updateTitle();
+}
+
+scribe::editor::EditorWidget* MainWindow::editor() const
+{
+    return m_tabs->currentEditor();
+}
+
+int MainWindow::tabCount() const
+{
+    return m_tabs->count();
 }
 
 void MainWindow::registerCommands()
@@ -82,6 +96,8 @@ void MainWindow::registerCommands()
                                        true});
     m_commands.registerCommand(
         Command{kFileExit, tr("E&xit"), QString(), [this] { close(); }, true});
+
+    TabCommands::registerIn(m_commands, *m_tabs);
 }
 
 void MainWindow::buildMenus()
@@ -92,7 +108,15 @@ void MainWindow::buildMenus()
     addCommandAction(fileMenu, kFileSave);
     addCommandAction(fileMenu, kFileSaveAs);
     fileMenu->addSeparator();
+    addCommandAction(fileMenu, TabCommands::kClose);
+    addCommandAction(fileMenu, TabCommands::kCloseOthers);
+    addCommandAction(fileMenu, TabCommands::kCloseAll);
+    fileMenu->addSeparator();
     addCommandAction(fileMenu, kFileExit);
+
+    QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
+    addCommandAction(viewMenu, TabCommands::kNext);
+    addCommandAction(viewMenu, TabCommands::kPrevious);
 }
 
 QAction* MainWindow::addCommandAction(QMenu* menu, const QString& commandId)
@@ -113,16 +137,16 @@ void MainWindow::updateTitle()
 {
     // "[*]" is replaced by Qt with a marker while the window is modified. A file name that
     // contains the placeholder itself must be escaped.
-    QString name = m_editor->displayName();
+    QString name = editor()->displayName();
     name.replace(QStringLiteral("[*]"), QStringLiteral("[[*]]"));
 
     setWindowTitle(QStringLiteral("%1[*] - %2").arg(name, tr("Scribe")));
-    setWindowModified(m_editor->isModified());
+    setWindowModified(editor()->isModified());
 }
 
 void MainWindow::newFile()
 {
-    m_editor->newFile();
+    m_tabs->addEditor();
 }
 
 void MainWindow::openFile()
@@ -132,7 +156,7 @@ void MainWindow::openFile()
         return;
     }
 
-    const scribe::core::IoResult result = m_editor->openFile(path);
+    const scribe::core::IoResult result = m_tabs->openFile(path);
     if (!result.ok()) {
         showIoError(result, path);
     }
@@ -140,25 +164,25 @@ void MainWindow::openFile()
 
 void MainWindow::saveFile()
 {
-    if (m_editor->fileDocument().filePath().isEmpty()) {
+    if (editor()->fileDocument().filePath().isEmpty()) {
         saveFileAs();
         return;
     }
 
-    const scribe::core::IoResult result = m_editor->saveFile();
+    const scribe::core::IoResult result = editor()->saveFile();
     if (!result.ok()) {
-        showIoError(result, m_editor->fileDocument().filePath());
+        showIoError(result, editor()->fileDocument().filePath());
     }
 }
 
 void MainWindow::saveFileAs()
 {
-    const QString path = m_dialogs.chooseSavePath(this, m_editor->fileDocument().filePath());
+    const QString path = m_dialogs.chooseSavePath(this, editor()->fileDocument().filePath());
     if (path.isEmpty()) {
         return;
     }
 
-    const scribe::core::IoResult result = m_editor->saveFileAs(path);
+    const scribe::core::IoResult result = editor()->saveFileAs(path);
     if (!result.ok()) {
         showIoError(result, path);
     }
@@ -185,7 +209,7 @@ void MainWindow::showIoError(const scribe::core::IoResult& result, const QString
             message =
                 tr("\"%1\" was not saved because the text contains characters that the "
                    "%2 encoding cannot store.")
-                    .arg(name, scribe::core::encodingName(m_editor->fileDocument().encoding()));
+                    .arg(name, scribe::core::encodingName(editor()->fileDocument().encoding()));
             break;
         case DocumentError::CannotWrite:
             message = tr("Could not save \"%1\". The file on disk was not changed.").arg(name);
