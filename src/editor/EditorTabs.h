@@ -28,14 +28,14 @@ public:
     EditorWidget* currentEditor() const;
 
     /// The editor in tab `index`, or nullptr for an invalid index.
-    EditorWidget* editorAt(int index) const;
+    [[nodiscard]] EditorWidget* editorAt(int index) const;
 
     /// Adds an empty tab at the end and makes it active.
     EditorWidget* addEditor();
 
     /// Index of the tab showing the file at `path`, or -1. Different spellings of the same path
     /// count as the same file.
-    int indexOfPath(const QString& path) const;
+    [[nodiscard]] int indexOfPath(const QString& path) const;
 
     /// Opens a file. Switches to its tab if it is already open (keeping any edits), reuses the
     /// active tab if it is an untouched empty "Untitled", and otherwise opens in a new tab. A
