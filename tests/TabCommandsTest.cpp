@@ -35,7 +35,10 @@ void TabCommandsTest::registersAllFiveCommands()
          {TabCommands::kClose, TabCommands::kCloseOthers, TabCommands::kCloseAll,
           TabCommands::kNext, TabCommands::kPrevious}) {
         const auto* command = registry.find(id);
-        QVERIFY2(command != nullptr, qPrintable(id));
+        // QFAIL returns unconditionally, so the analyzer knows `command` is not null below.
+        if (command == nullptr) {
+            QFAIL(qPrintable(id));
+        }
         QVERIFY2(!command->title.isEmpty(), qPrintable(id));
     }
 }
