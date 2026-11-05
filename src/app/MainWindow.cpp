@@ -2,6 +2,7 @@
 
 #include "EditorTabs.h"
 #include "EditorWidget.h"
+#include "TabCommands.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -16,6 +17,7 @@ namespace
 {
 
 using scribe::core::DocumentError;
+using scribe::editor::TabCommands;
 
 // Every command id in one place, so a typo is a compile error instead of a dead menu entry.
 constexpr QLatin1String kFileNew("file.new");
@@ -23,11 +25,6 @@ constexpr QLatin1String kFileOpen("file.open");
 constexpr QLatin1String kFileSave("file.save");
 constexpr QLatin1String kFileSaveAs("file.saveAs");
 constexpr QLatin1String kFileExit("file.exit");
-constexpr QLatin1String kTabClose("tab.close");
-constexpr QLatin1String kTabCloseOthers("tab.closeOthers");
-constexpr QLatin1String kTabCloseAll("tab.closeAll");
-constexpr QLatin1String kTabNext("tab.next");
-constexpr QLatin1String kTabPrevious("tab.previous");
 
 QString fileFilter()
 {
@@ -97,22 +94,10 @@ void MainWindow::registerCommands()
     m_commands.registerCommand(Command{kFileSaveAs, tr("Save &As..."),
                                        QStringLiteral("Ctrl+Shift+S"), [this] { saveFileAs(); },
                                        true});
-    m_commands.registerCommand(Command{kTabClose, tr("&Close Tab"), QStringLiteral("Ctrl+W"),
-                                       [this] { m_tabs->closeTab(m_tabs->currentIndex()); }, true});
-    m_commands.registerCommand(Command{kTabCloseOthers, tr("Close &Other Tabs"), QString(),
-                                       [this] { m_tabs->closeOtherTabs(m_tabs->currentIndex()); },
-                                       true});
-    m_commands.registerCommand(Command{kTabCloseAll, tr("Close A&ll Tabs"),
-                                       QStringLiteral("Ctrl+Shift+W"),
-                                       [this] { m_tabs->closeAllTabs(); }, true});
     m_commands.registerCommand(
         Command{kFileExit, tr("E&xit"), QString(), [this] { close(); }, true});
 
-    m_commands.registerCommand(Command{kTabNext, tr("&Next Tab"), QStringLiteral("Ctrl+Tab"),
-                                       [this] { m_tabs->nextTab(); }, true});
-    m_commands.registerCommand(Command{kTabPrevious, tr("&Previous Tab"),
-                                       QStringLiteral("Ctrl+Shift+Tab"),
-                                       [this] { m_tabs->previousTab(); }, true});
+    TabCommands::registerIn(m_commands, *m_tabs);
 }
 
 void MainWindow::buildMenus()
@@ -123,15 +108,15 @@ void MainWindow::buildMenus()
     addCommandAction(fileMenu, kFileSave);
     addCommandAction(fileMenu, kFileSaveAs);
     fileMenu->addSeparator();
-    addCommandAction(fileMenu, kTabClose);
-    addCommandAction(fileMenu, kTabCloseOthers);
-    addCommandAction(fileMenu, kTabCloseAll);
+    addCommandAction(fileMenu, TabCommands::kClose);
+    addCommandAction(fileMenu, TabCommands::kCloseOthers);
+    addCommandAction(fileMenu, TabCommands::kCloseAll);
     fileMenu->addSeparator();
     addCommandAction(fileMenu, kFileExit);
 
     QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
-    addCommandAction(viewMenu, kTabNext);
-    addCommandAction(viewMenu, kTabPrevious);
+    addCommandAction(viewMenu, TabCommands::kNext);
+    addCommandAction(viewMenu, TabCommands::kPrevious);
 }
 
 QAction* MainWindow::addCommandAction(QMenu* menu, const QString& commandId)

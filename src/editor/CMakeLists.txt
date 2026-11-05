@@ -3,6 +3,8 @@ add_library(scribe_editor STATIC
     EditorWidget.cpp
     EditorTabs.h
     EditorTabs.cpp
+    TabCommands.h
+    TabCommands.cpp
 )
 
 target_include_directories(scribe_editor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
