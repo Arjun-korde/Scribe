@@ -31,7 +31,13 @@ private slots:
     void failedSaveShowsAnErrorAndStaysModified();
     void unencodableTextExplainsTheEncoding();
     void titleShowsModifiedMarker();
-    void newResetsTheWindow();
+    void newOpensAnotherTabAndKeepsTheFirst();
+    void openGoesToANewTabWhenTheCurrentOneIsInUse();
+    void titleFollowsTheActiveTab();
+    void saveActsOnTheActiveTab();
+    void closeCommandsManageTabs();
+    void closingTheLastTabKeepsTheWindowUsable();
+    void realKeystrokesSwitchTabsWhileTheEditorHasFocus();
     void exitClosesTheWindow();
 
 private:
@@ -110,11 +116,14 @@ void MainWindowTest::fileMenuIsBuiltFromRegisteredCommands()
     MainWindow window(scriptedDialogs());
 
     const QList<QAction*> menus = window.menuBar()->actions();
-    QCOMPARE(menus.size(), 1);
-    QCOMPARE(menus.first()->text(), QStringLiteral("&File"));
+    QCOMPARE(menus.size(), 2);
+    QCOMPARE(menus.at(0)->text(), QStringLiteral("&File"));
+    QCOMPARE(menus.at(1)->text(), QStringLiteral("&View"));
 
     // Menu entries must be the registry's commands, with the registry's shortcuts.
-    const QStringList ids = {"file.new", "file.open", "file.save", "file.saveAs", "file.exit"};
+    const QStringList ids = {"file.new",  "file.open",   "file.save",       "file.saveAs",
+                             "file.exit", "tab.close",   "tab.closeOthers", "tab.closeAll",
+                             "tab.next",  "tab.previous"};
     for (const QString& id : ids) {
         const auto* command = window.commands().find(id);
         QVERIFY2(command != nullptr, qPrintable(id));
@@ -126,6 +135,10 @@ void MainWindowTest::fileMenuIsBuiltFromRegisteredCommands()
     }
     QCOMPARE(window.findChild<QAction*>("file.save")->shortcut(), QKeySequence("Ctrl+S"));
     QCOMPARE(window.findChild<QAction*>("file.saveAs")->shortcut(), QKeySequence("Ctrl+Shift+S"));
+    QCOMPARE(window.findChild<QAction*>("tab.close")->shortcut(), QKeySequence("Ctrl+W"));
+    QCOMPARE(window.findChild<QAction*>("tab.next")->shortcut(), QKeySequence("Ctrl+Tab"));
+    QCOMPARE(window.findChild<QAction*>("tab.previous")->shortcut(),
+             QKeySequence("Ctrl+Shift+Tab"));
 }
 
 void MainWindowTest::openLoadsTheChosenFile()
@@ -250,19 +263,99 @@ void MainWindowTest::titleShowsModifiedMarker()
     QVERIFY(!window.isWindowModified());
 }
 
-void MainWindowTest::newResetsTheWindow()
+void MainWindowTest::newOpensAnotherTabAndKeepsTheFirst()
 {
     write("a.txt", "abc");
     m_openAnswer = path("a.txt");
     MainWindow window(scriptedDialogs());
     window.commands().run("file.open");
     type(window, "x");
+    QCOMPARE(window.tabCount(), 1);
 
     window.commands().run("file.new");
 
+    QCOMPARE(window.tabCount(), 2);
     QVERIFY(window.editor()->toPlainText().isEmpty());
     QCOMPARE(window.windowTitle(), QStringLiteral("Untitled[*] - Scribe"));
     QVERIFY(!window.isWindowModified());
+
+    window.commands().run("tab.previous"); // the first tab still has its unsaved edit
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("abcx"));
+    QVERIFY(window.isWindowModified());
+}
+
+void MainWindowTest::openGoesToANewTabWhenTheCurrentOneIsInUse()
+{
+    write("a.txt", "one");
+    write("b.txt", "two");
+    MainWindow window(scriptedDialogs());
+
+    m_openAnswer = path("a.txt");
+    window.commands().run("file.open");
+    QCOMPARE(window.tabCount(), 1); // reused the untouched Untitled tab
+
+    m_openAnswer = path("b.txt");
+    window.commands().run("file.open");
+    QCOMPARE(window.tabCount(), 2);
+    QCOMPARE(window.windowTitle(), QStringLiteral("b.txt[*] - Scribe"));
+}
+
+void MainWindowTest::titleFollowsTheActiveTab()
+{
+    MainWindow window(scriptedDialogs());
+    window.commands().run("file.new");
+    type(window, "edit"); // tab 2 is modified
+
+    QVERIFY(window.isWindowModified());
+    window.commands().run("tab.next"); // wraps to tab 1, which is clean
+    QVERIFY(!window.isWindowModified());
+    window.commands().run("tab.previous");
+    QVERIFY(window.isWindowModified());
+}
+
+void MainWindowTest::saveActsOnTheActiveTab()
+{
+    MainWindow window(scriptedDialogs());
+    type(window, "first");
+    window.commands().run("file.new");
+    type(window, "second");
+
+    m_saveAnswer = path("second.txt");
+    window.commands().run("file.save");
+
+    QCOMPARE(read("second.txt"), QByteArray("second"));
+    QCOMPARE(window.windowTitle(), QStringLiteral("second.txt[*] - Scribe"));
+    window.commands().run("tab.next");
+    QVERIFY(window.isWindowModified()); // the other tab is untouched by the save
+}
+
+void MainWindowTest::closeCommandsManageTabs()
+{
+    MainWindow window(scriptedDialogs());
+    window.commands().run("file.new");
+    window.commands().run("file.new");
+    QCOMPARE(window.tabCount(), 3);
+
+    window.commands().run("tab.close");
+    QCOMPARE(window.tabCount(), 2);
+
+    window.commands().run("tab.closeOthers");
+    QCOMPARE(window.tabCount(), 1);
+
+    window.commands().run("file.new");
+    window.commands().run("tab.closeAll");
+    QCOMPARE(window.tabCount(), 1);
+    QCOMPARE(window.windowTitle(), QStringLiteral("Untitled[*] - Scribe"));
+}
+
+void MainWindowTest::closingTheLastTabKeepsTheWindowUsable()
+{
+    MainWindow window(scriptedDialogs());
+    window.commands().run("tab.close");
+
+    QCOMPARE(window.tabCount(), 1);
+    QVERIFY(window.editor() != nullptr);
+    QCOMPARE(window.windowTitle(), QStringLiteral("Untitled[*] - Scribe"));
 }
 
 void MainWindowTest::exitClosesTheWindow()
@@ -273,6 +366,28 @@ void MainWindowTest::exitClosesTheWindow()
 
     window.commands().run("file.exit");
     QVERIFY(!window.isVisible());
+}
+
+void MainWindowTest::realKeystrokesSwitchTabsWhileTheEditorHasFocus()
+{
+    MainWindow window(scriptedDialogs());
+    window.commands().run("file.new");
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QCOMPARE(window.tabCount(), 2);
+    QVERIFY(window.editor()->hasFocus());
+
+    // The text editor must not swallow Ctrl+Tab by inserting a tab character.
+    QTest::keyClick(window.editor(), Qt::Key_Tab, Qt::ControlModifier);
+    QCOMPARE(window.editor()->toPlainText(), QString());
+    QCOMPARE(window.windowTitle(), QStringLiteral("Untitled[*] - Scribe"));
+    const auto* before = window.editor();
+
+    QTest::keyClick(window.editor(), Qt::Key_Tab, Qt::ControlModifier);
+    QVERIFY(window.editor() != before);
+
+    QTest::keyClick(window.editor(), Qt::Key_Backtab, Qt::ControlModifier | Qt::ShiftModifier);
+    QCOMPARE(window.editor(), before);
 }
 
 QTEST_MAIN(MainWindowTest)

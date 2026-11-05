@@ -21,6 +21,22 @@ Create the test files in Notepad (Save As, choose the encoding) or with PowerShe
 | ANSI with `é` (Notepad "ANSI") | Same. |
 | LF-only and CR-only files | Open as multiple lines. Hash unchanged after save. |
 
+## Tabs
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | `Ctrl+N` three times | Three new tabs appear to the right and the last one is active. Each tab has a close button. |
+| 2 | Type in one tab | Its label gets ` *`. The window title shows the `*` only while that tab is active. |
+| 3 | `Ctrl+Tab` and `Ctrl+Shift+Tab` while typing in the editor | Switches tabs and wraps around. No tab character is inserted. |
+| 4 | `Ctrl+O` a file, then `Ctrl+O` the same file again | The second open switches to the existing tab and keeps its edits. |
+| 5 | Open a file while the current tab is an empty, unmodified Untitled | The file opens in that tab (no extra tab). |
+| 6 | `Ctrl+W`, middle-click on a tab, and click a tab's close button | Each closes the tab. Closing the last tab leaves one empty Untitled tab. |
+| 7 | File > Close Other Tabs / Close All Tabs | Only the active tab stays / one empty Untitled remains. |
+| 8 | Hover a tab with a saved file | The tooltip shows the full path. |
+| 9 | Open a file named `a&b.txt` | The tab reads `a&b.txt`, not `ab.txt` with an underline. |
+| 10 | Open 15 or more files | The tab bar stays usable (scroll arrows). The full overflow design comes later. |
+| 11 | Drag a tab to reorder | The tab moves. Save and the title still act on the active tab. |
+
 ## Error handling
 
 | # | Steps | Expected |
@@ -30,4 +46,5 @@ Create the test files in Notepad (Save As, choose the encoding) or with PowerShe
 
 ## Known gaps (do not report)
 
-- Closing the window, New and Open discard unsaved edits without asking. This is fixed by the unsaved-changes prompt.
+- Closing a tab, Close Other Tabs, Close All Tabs and closing the window discard unsaved edits without asking. This is fixed by the unsaved-changes prompt.
+- All new tabs are named "Untitled", and Save As onto a file that is open in another tab gives two tabs for one file.

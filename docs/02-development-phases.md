@@ -55,9 +55,9 @@ Effort assumes part-time work and can be adjusted.
 - [ ] Print and Page Setup **[stretch]**
 
 **Tabs**
-- [ ] Tabbed documents, with modified indicator
-- [ ] New tab, close tab, Ctrl+Tab and Ctrl+Shift+Tab switching
-- [ ] Close other tabs / close all
+- [x] Tabbed documents, with modified indicator
+- [x] New tab, close tab, Ctrl+Tab and Ctrl+Shift+Tab switching
+- [x] Close other tabs / close all
 
 **Edit**
 - [ ] Undo, Redo, Cut, Copy, Paste, Delete, Select All

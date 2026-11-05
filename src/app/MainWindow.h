@@ -9,8 +9,9 @@
 
 namespace scribe::editor
 {
+class EditorTabs;
 class EditorWidget;
-}
+} // namespace scribe::editor
 
 /// The user interaction the window needs from the outside world. The defaults show the standard
 /// Qt dialogs; tests replace them with scripted answers so no dialog ever blocks.
@@ -28,8 +29,9 @@ struct FileDialogs
 
 FileDialogs defaultFileDialogs();
 
-/// The main window: a menu bar and one editor. Every menu entry runs a command from the
+/// The main window: a menu bar and a row of editor tabs. Every menu entry runs a command from the
 /// CommandRegistry, so shortcuts, menus and later the command palette share the same actions.
+/// File commands (save, save as) act on the active tab.
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -39,7 +41,10 @@ public:
     explicit MainWindow(FileDialogs dialogs, QWidget* parent = nullptr);
 
     const scribe::core::CommandRegistry& commands() const { return m_commands; }
-    scribe::editor::EditorWidget* editor() const { return m_editor; }
+
+    /// The editor of the active tab. Never null.
+    scribe::editor::EditorWidget* editor() const;
+    int tabCount() const;
 
 private:
     void registerCommands();
@@ -55,5 +60,5 @@ private:
 
     FileDialogs m_dialogs;
     scribe::core::CommandRegistry m_commands;
-    scribe::editor::EditorWidget* m_editor = nullptr; // owned by Qt as the central widget
+    scribe::editor::EditorTabs* m_tabs = nullptr; // owned by Qt as the central widget
 };

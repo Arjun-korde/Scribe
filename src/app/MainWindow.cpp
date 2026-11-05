@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 
+#include "EditorTabs.h"
 #include "EditorWidget.h"
 
 #include <QAction>
@@ -22,6 +23,11 @@ constexpr QLatin1String kFileOpen("file.open");
 constexpr QLatin1String kFileSave("file.save");
 constexpr QLatin1String kFileSaveAs("file.saveAs");
 constexpr QLatin1String kFileExit("file.exit");
+constexpr QLatin1String kTabClose("tab.close");
+constexpr QLatin1String kTabCloseOthers("tab.closeOthers");
+constexpr QLatin1String kTabCloseAll("tab.closeAll");
+constexpr QLatin1String kTabNext("tab.next");
+constexpr QLatin1String kTabPrevious("tab.previous");
 
 QString fileFilter()
 {
@@ -54,16 +60,27 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     : QMainWindow(parent)
     , m_dialogs(std::move(dialogs))
-    , m_editor(new scribe::editor::EditorWidget(this))
+    , m_tabs(new scribe::editor::EditorTabs(this))
 {
     resize(900, 600);
-    setCentralWidget(m_editor);
+    setCentralWidget(m_tabs);
 
     registerCommands();
     buildMenus();
 
-    connect(m_editor, &scribe::editor::EditorWidget::stateChanged, this, &MainWindow::updateTitle);
+    connect(m_tabs, &scribe::editor::EditorTabs::currentEditorStateChanged, this,
+            &MainWindow::updateTitle);
     updateTitle();
+}
+
+scribe::editor::EditorWidget* MainWindow::editor() const
+{
+    return m_tabs->currentEditor();
+}
+
+int MainWindow::tabCount() const
+{
+    return m_tabs->count();
 }
 
 void MainWindow::registerCommands()
@@ -80,8 +97,22 @@ void MainWindow::registerCommands()
     m_commands.registerCommand(Command{kFileSaveAs, tr("Save &As..."),
                                        QStringLiteral("Ctrl+Shift+S"), [this] { saveFileAs(); },
                                        true});
+    m_commands.registerCommand(Command{kTabClose, tr("&Close Tab"), QStringLiteral("Ctrl+W"),
+                                       [this] { m_tabs->closeTab(m_tabs->currentIndex()); }, true});
+    m_commands.registerCommand(Command{kTabCloseOthers, tr("Close &Other Tabs"), QString(),
+                                       [this] { m_tabs->closeOtherTabs(m_tabs->currentIndex()); },
+                                       true});
+    m_commands.registerCommand(Command{kTabCloseAll, tr("Close A&ll Tabs"),
+                                       QStringLiteral("Ctrl+Shift+W"),
+                                       [this] { m_tabs->closeAllTabs(); }, true});
     m_commands.registerCommand(
         Command{kFileExit, tr("E&xit"), QString(), [this] { close(); }, true});
+
+    m_commands.registerCommand(Command{kTabNext, tr("&Next Tab"), QStringLiteral("Ctrl+Tab"),
+                                       [this] { m_tabs->nextTab(); }, true});
+    m_commands.registerCommand(Command{kTabPrevious, tr("&Previous Tab"),
+                                       QStringLiteral("Ctrl+Shift+Tab"),
+                                       [this] { m_tabs->previousTab(); }, true});
 }
 
 void MainWindow::buildMenus()
@@ -92,7 +123,15 @@ void MainWindow::buildMenus()
     addCommandAction(fileMenu, kFileSave);
     addCommandAction(fileMenu, kFileSaveAs);
     fileMenu->addSeparator();
+    addCommandAction(fileMenu, kTabClose);
+    addCommandAction(fileMenu, kTabCloseOthers);
+    addCommandAction(fileMenu, kTabCloseAll);
+    fileMenu->addSeparator();
     addCommandAction(fileMenu, kFileExit);
+
+    QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
+    addCommandAction(viewMenu, kTabNext);
+    addCommandAction(viewMenu, kTabPrevious);
 }
 
 QAction* MainWindow::addCommandAction(QMenu* menu, const QString& commandId)
@@ -113,16 +152,16 @@ void MainWindow::updateTitle()
 {
     // "[*]" is replaced by Qt with a marker while the window is modified. A file name that
     // contains the placeholder itself must be escaped.
-    QString name = m_editor->displayName();
+    QString name = editor()->displayName();
     name.replace(QStringLiteral("[*]"), QStringLiteral("[[*]]"));
 
     setWindowTitle(QStringLiteral("%1[*] - %2").arg(name, tr("Scribe")));
-    setWindowModified(m_editor->isModified());
+    setWindowModified(editor()->isModified());
 }
 
 void MainWindow::newFile()
 {
-    m_editor->newFile();
+    m_tabs->addEditor();
 }
 
 void MainWindow::openFile()
@@ -132,7 +171,7 @@ void MainWindow::openFile()
         return;
     }
 
-    const scribe::core::IoResult result = m_editor->openFile(path);
+    const scribe::core::IoResult result = m_tabs->openFile(path);
     if (!result.ok()) {
         showIoError(result, path);
     }
@@ -140,25 +179,25 @@ void MainWindow::openFile()
 
 void MainWindow::saveFile()
 {
-    if (m_editor->fileDocument().filePath().isEmpty()) {
+    if (editor()->fileDocument().filePath().isEmpty()) {
         saveFileAs();
         return;
     }
 
-    const scribe::core::IoResult result = m_editor->saveFile();
+    const scribe::core::IoResult result = editor()->saveFile();
     if (!result.ok()) {
-        showIoError(result, m_editor->fileDocument().filePath());
+        showIoError(result, editor()->fileDocument().filePath());
     }
 }
 
 void MainWindow::saveFileAs()
 {
-    const QString path = m_dialogs.chooseSavePath(this, m_editor->fileDocument().filePath());
+    const QString path = m_dialogs.chooseSavePath(this, editor()->fileDocument().filePath());
     if (path.isEmpty()) {
         return;
     }
 
-    const scribe::core::IoResult result = m_editor->saveFileAs(path);
+    const scribe::core::IoResult result = editor()->saveFileAs(path);
     if (!result.ok()) {
         showIoError(result, path);
     }
@@ -185,7 +224,7 @@ void MainWindow::showIoError(const scribe::core::IoResult& result, const QString
             message =
                 tr("\"%1\" was not saved because the text contains characters that the "
                    "%2 encoding cannot store.")
-                    .arg(name, scribe::core::encodingName(m_editor->fileDocument().encoding()));
+                    .arg(name, scribe::core::encodingName(editor()->fileDocument().encoding()));
             break;
         case DocumentError::CannotWrite:
             message = tr("Could not save \"%1\". The file on disk was not changed.").arg(name);

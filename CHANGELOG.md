@@ -7,6 +7,10 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 
 ### Added
 - File menu with New, Open, Save, Save As and Exit (`Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`).
+- Tabs: New and Open add a tab (opening a file that is already open switches to it), `Ctrl+W` closes
+  a tab, middle-click or the tab button also close it, and Close Other Tabs / Close All Tabs are in
+  the File menu. `Ctrl+Tab` and `Ctrl+Shift+Tab` switch tabs. A tab shows `*` while it has unsaved
+  changes, and the window title follows the active tab.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.
@@ -17,6 +21,9 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   the file's encoding cannot store.
 
 ### Known limitations
-- Closing the window, New and Open do not yet ask about unsaved changes.
+- Closing a tab, Close Other Tabs, Close All Tabs and closing the window do not yet ask about
+  unsaved changes.
+- Every unsaved tab is called "Untitled" (no numbering), and Save As to a file that is already open
+  in another tab leaves two tabs for the same file.
 - A file with mixed line endings is saved using its most common line ending.
 - UTF-16 files without a BOM are only recognised for mostly Latin text.
