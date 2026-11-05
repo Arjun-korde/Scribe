@@ -73,6 +73,23 @@ jobs:
         if: matrix.preset == 'debug'
         shell: pwsh
         run: |
+          # One clang-tidy process per file, several at a time. Run one after another this step took
+          # about 12 minutes. Output is collected per file so the logs do not interleave.
+          $root = (Get-Location).Path
           $files = git ls-files 'src/*.cpp' 'tests/*.cpp'
-          clang-tidy -p build/debug --quiet $files
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $results = $files | ForEach-Object -ThrottleLimit ([Environment]::ProcessorCount) -Parallel {
+              Set-Location $using:root
+              $output = clang-tidy -p build/debug --quiet $_ 2>&1 | Out-String
+              [pscustomobject]@{ File = $_; ExitCode = $LASTEXITCODE; Output = $output }
+          }
+          $failed = $false
+          foreach ($result in $results) {
+              Write-Host "::group::$($result.File)"
+              Write-Host $result.Output
+              Write-Host '::endgroup::'
+              if ($result.ExitCode -ne 0) {
+                  Write-Host "::error::clang-tidy failed on $($result.File)"
+                  $failed = $true
+              }
+          }
+          if ($failed) { exit 1 }
