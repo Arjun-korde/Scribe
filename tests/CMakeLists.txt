@@ -14,9 +14,16 @@ add_test(NAME scribe_gtests COMMAND scribe_gtests)
 
 # Qt classes and UI behaviour (Qt Test). Each test class has its own main(), so each one is its
 # own executable. Usage: scribe_add_qt_test(<name> <source> [<library>...])
+
+# All test executables deploy the same Qt DLLs and plugins into this folder. Run in parallel,
+# windeployqt processes collide ("Cannot create file when it already exists"). The deploy step is
+# part of the link edge, so a one-job pool for linking tests runs them one at a time. Ninja only.
+set_property(GLOBAL APPEND PROPERTY JOB_POOLS scribe_qt_deploy=1)
+
 function(scribe_add_qt_test name source)
     add_executable(${name} ${source})
     target_link_libraries(${name} PRIVATE Qt6::Test ${ARGN})
+    set_property(TARGET ${name} PROPERTY JOB_POOL_LINK scribe_qt_deploy)
     add_test(NAME ${name} COMMAND ${name})
 
     # Copy the Qt DLLs next to the test exe so CTest can run it.
