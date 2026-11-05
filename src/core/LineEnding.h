@@ -2,10 +2,12 @@
 
 #include <QString>
 
+#include <cstdint>
+
 namespace scribe::core
 {
 
-enum class LineEnding
+enum class LineEnding : std::uint8_t
 {
     Crlf,
     Lf,
