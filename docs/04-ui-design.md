@@ -205,41 +205,27 @@ Microphone (device picker plus a live level test), language, model (links to the
 
 ## 12. Design status and pending work
 
-**Figma file:** https://www.figma.com/design/ArJI49RD77otKfQ4WJxfZ8 ("Scribe UI Design")
+**Figma file:** https://www.figma.com/design/ArJI49RD77otKfQ4WJxfZ8 ("Scribe UI Design"). All sheets exist in light and dark.
 
 Done in Figma:
-- Color variables: `Scribe/Light` and `Scribe/Dark` (two collections, because the Figma Starter plan allows one mode per collection), plus `Scribe/Spacing` (space and radius values) and 6 text styles.
-- Main window, light and dark: title bar with app icon, menus and microphone control (listening), tabs, editor, status bar.
-- Overlays sheet, light and dark: find and replace bar, no-match state, file-changed banner, command palette, unsaved-changes dialog, Settings (Appearance).
-- Components sheet, light and dark: Button, Input, Tab, Icon Button, Tooltip, Menu Item, each with its states.
-- Voice sheet, light and dark: microphone states, level meter levels, Speech settings (first version).
+- **Foundations:** color variables in `Scribe/Light` and `Scribe/Dark` (two collections, because the Figma Starter plan allows one mode per collection), `Scribe/Spacing` (space and radius values), and 6 text styles.
+- **Main window:** title bar with app icon, menus and microphone control (listening), tabs, editor with the `...` transcribing placeholder, status bar. A second frame per theme shows the find and replace bar open.
+- **Title bar responsive:** full, menus collapsed to `...`, mic without label, mic icon only.
+- **Overlays:** find bar, no-match state, file-changed banner, command palette, unsaved-changes dialog, Settings (Appearance).
+- **Components:** Button, Input, Tab, Icon Button, Tooltip, Menu Item, each with its states (hover, pressed, focus, disabled, error where it applies). The new sheets below are built from these.
+- **Menus, states and dialogs:** editor and tab context menus, tooltips in context, tab overflow, Go to line, About, large file progress, encoding mismatch banner.
+- **Voice input:** microphone control states (idle, setup needed, listening, transcribing, paused, downloading, no microphone, blocked by Windows), level meter levels, the editor placeholder, mic blocked and no microphone banners, Voice setup (first run), model download and failure state, Settings > Speech with the model manager, accessibility notes.
 
-Corrections needed on what exists (pending):
-- [ ] Main windows and Voice sheet still show the old "interim text" idea and an "insert punctuation" option. Replace them with the `...` placeholder and remove the option (section 10).
-- [ ] Voice sheet: add the Mic blocked state, the Setup needed state and the Transcribing state as drawn in 10.1.
-- [ ] Components sheet: the primary button Focus variant must use a 2 px `textPrimary` ring (section 7). The Figma call that applies this was blocked by the plan limit.
-- [ ] The existing main window, overlay and voice frames are plain frames, not instances of the new components. Rebuild them from the components so token and state changes propagate.
-- [ ] Light and Dark components are separate sets (the plan allows one mode per collection). Merge into one set with two modes when the plan allows it.
-
-Pending screens (specified above or in section 3, not yet drawn):
-- [ ] Find bar open inside the main window
-- [ ] Editor context menu and tab context menu
-- [ ] Tab overflow (many tabs)
-- [ ] Title bar at narrow widths (900, 640 and 480 px)
-- [ ] Go to line
-- [ ] About
-- [ ] Encoding mismatch / binary file banner
-- [ ] Large file open progress
-- [ ] Tooltips in context (tab, mic control, status bar)
-- [ ] Mic blocked banner, No microphone banner
-- [ ] Voice setup modal (first run) and model download progress
-- [ ] Settings > Speech with the model manager
-- [ ] Accessibility annotation layer (names, roles, announcements from section 8)
+Pending in Figma:
+- [ ] The main window and Overlays frames (built earlier) are plain frames, not instances of the components. Rebuild them from the components so token and state changes propagate.
+- [ ] Light and Dark components are separate sets. Merge into one set with two modes when the plan allows it.
+- [ ] Visual check of the dark versions of the newer sheets (menus, voice, find open, title bar responsive). They use the same code as the light ones, which were checked.
+- [ ] Window-control glyphs are text characters in the mock; replace with real icons.
+- [ ] The tab context menu and editor context menu have no submenu designs (not needed yet).
 
 Pending design decisions and checks:
 - [ ] Contrast check on all color tokens, including the four new ones (target 4.5:1 text, 3:1 components)
 - [ ] Syntax-highlighting palette (about 8 hues, per theme), needed in Phase 2
-- [ ] Window-control glyphs are text characters in the mock; replace with real icons
 - [ ] Final app icon (the "S" square is a placeholder) and final name
 - [ ] Inter stands in for Segoe UI in Figma (Segoe UI is not available there)
 - [ ] Toolbar decision (decision 5)
@@ -249,7 +235,7 @@ Pending design decisions and checks:
 
 ## 13. Next steps
 
-1. Once the Figma limit resets or the plan is upgraded, finish the pending Figma items in section 12, starting with the corrections.
-2. Run the contrast check on all color tokens and fix failures.
-3. Do the title bar spike (decision 6).
+1. Run the contrast check on all color tokens and fix failures.
+2. Do the title bar spike (decision 6).
+3. Rebuild the early frames from components and merge the light and dark component sets when possible.
 4. Implement `Theme` (tokens to `QPalette` and QSS), then the title bar, tab strip and status bar as the first styled components.
