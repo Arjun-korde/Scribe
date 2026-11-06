@@ -36,6 +36,12 @@ private slots:
     void closeAllMixesSaveDiscardAndCleanTabs();
     void newAndOpenNeverAsk();
 
+    void openFilesOpensEachFileInOrderAndLeavesTheLastActive();
+    void openFilesShowsOneErrorPerFailureAndStillOpensTheRest();
+    void openFilesSwitchesToFilesThatAreAlreadyOpen();
+    void openFilesWithNoPathsDoesNothing();
+    void openFilesNeverAsksAboutUnsavedChanges();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
     QString write(const QString& name, const QByteArray& bytes) const;
@@ -352,6 +358,83 @@ void DocumentControllerTest::newAndOpenNeverAsk()
     QCOMPARE(tabs.editorAt(0)->toPlainText(), QStringLiteral("unsaved work"));
     QVERIFY(tabs.editorAt(0)->isModified());
     QCOMPARE(tabs.editorAt(1)->toPlainText(), QStringLiteral("abc"));
+}
+
+void DocumentControllerTest::openFilesOpensEachFileInOrderAndLeavesTheLastActive()
+{
+    const QStringList files = {write("a.txt", "one"), write("b.txt", "two"),
+                               write("c.txt", "three")};
+    EditorTabs tabs;
+    DocumentController controller(tabs, scriptedDialogs(), nullptr);
+
+    controller.openFiles(files);
+
+    QCOMPARE(tabs.count(), 3); // the first file reused the untouched Untitled tab
+    QCOMPARE(tabs.editorAt(0)->toPlainText(), QStringLiteral("one"));
+    QCOMPARE(tabs.editorAt(1)->toPlainText(), QStringLiteral("two"));
+    QCOMPARE(tabs.editorAt(2)->toPlainText(), QStringLiteral("three"));
+    QCOMPARE(tabs.currentIndex(), 2);
+    QVERIFY(m_errors.isEmpty());
+}
+
+void DocumentControllerTest::openFilesShowsOneErrorPerFailureAndStillOpensTheRest()
+{
+    // Odd-length UTF-16 cannot be opened without changing it, and a missing file cannot be read.
+    const QString bad = write("bad.txt", QByteArray::fromHex("FFFE6800690000"));
+    const QString good = write("good.txt", "fine");
+    const QString missing = path("missing.txt");
+    EditorTabs tabs;
+    DocumentController controller(tabs, scriptedDialogs(), nullptr);
+
+    controller.openFiles({bad, good, missing});
+
+    QCOMPARE(tabs.count(), 1);
+    QCOMPARE(tabs.currentEditor()->toPlainText(), QStringLiteral("fine"));
+    QCOMPARE(m_errors.size(), 2); // one dialog per failed file
+    QVERIFY2(m_errors.at(0).contains("bad.txt"), qPrintable(m_errors.at(0)));
+    QVERIFY2(m_errors.at(1).contains("missing.txt"), qPrintable(m_errors.at(1)));
+}
+
+void DocumentControllerTest::openFilesSwitchesToFilesThatAreAlreadyOpen()
+{
+    const QString first = write("a.txt", "one");
+    const QString second = write("b.txt", "two");
+    EditorTabs tabs;
+    DocumentController controller(tabs, scriptedDialogs(), nullptr);
+    controller.openFiles({first, second});
+    edit(tabs.editorAt(0), "+edited");
+
+    controller.openFiles({first});
+
+    QCOMPARE(tabs.count(), 2);
+    QCOMPARE(tabs.currentIndex(), 0);
+    QCOMPARE(tabs.currentEditor()->toPlainText(), QStringLiteral("one+edited")); // edits kept
+}
+
+void DocumentControllerTest::openFilesWithNoPathsDoesNothing()
+{
+    EditorTabs tabs;
+    DocumentController controller(tabs, scriptedDialogs(), nullptr);
+
+    controller.openFiles({});
+
+    QCOMPARE(tabs.count(), 1);
+    QVERIFY(m_errors.isEmpty());
+    QVERIFY(m_askedAbout.isEmpty());
+}
+
+void DocumentControllerTest::openFilesNeverAsksAboutUnsavedChanges()
+{
+    EditorTabs tabs;
+    DocumentController controller(tabs, scriptedDialogs(), nullptr);
+    edit(tabs.currentEditor(), "unsaved work");
+
+    controller.openFiles({write("a.txt", "one"), write("b.txt", "two")});
+
+    QVERIFY(m_askedAbout.isEmpty());
+    QCOMPARE(tabs.count(), 3);
+    QCOMPARE(tabs.editorAt(0)->toPlainText(), QStringLiteral("unsaved work"));
+    QVERIFY(tabs.editorAt(0)->isModified());
 }
 
 QTEST_MAIN(DocumentControllerTest)

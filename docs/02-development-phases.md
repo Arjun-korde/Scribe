@@ -50,7 +50,7 @@ Effort assumes part-time work and can be adjusted.
 **File**
 - [x] New, Open, Save, Save As, Exit
 - [x] Unsaved-changes prompt (Save / Don't Save / Cancel)
-- [ ] Drag and drop to open files
+- [x] Drag and drop to open files
 - [ ] Recent files list
 - [ ] Print and Page Setup **[stretch]**
 

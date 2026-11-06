@@ -74,6 +74,30 @@ Use two tabs with some text. Check the menu with the mouse and the shortcuts wit
 | 10 | Switch tabs and use Edit commands | They act on the active tab only. The menu state changes with the tab (for example Undo is greyed out in a tab with no edits). |
 | 11 | Right-click in the editor | Qt's built-in context menu appears and works. (It is not the styled menu from the design yet.) |
 
+## Drag and drop
+
+Automated tests simulate the drag events, but only a real Explorer drag proves the whole chain, so run these by hand. Have a few small `.txt` files and a folder ready.
+
+Checks 1–8 passed by hand on 2026-11-06.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Drag one `.txt` file from Explorer over the editor | The cursor shows the "copy" icon (+). Nothing is inserted into the text. |
+| 2 | Drop it | The file opens (in the empty Untitled tab if it is untouched, otherwise in a new tab). |
+| 3 | Select three files in Explorer and drop them together | Three tabs, in the order Explorer lists them; the last file's tab is active. |
+| 4 | Drop a file onto the tab strip (not the text area) | It opens the same way. |
+| 5 | Drop a file that is already open (with unsaved edits in it) | Its tab is switched to; the edits are still there; no second tab. |
+| 6 | Drag a folder over the window and drop it | The cursor shows the "not allowed" icon. Nothing is inserted and nothing opens. |
+| 7 | Select a folder and a file together and drop | Only the file opens. |
+| 8 | Drop a file while the current tab has unsaved edits | The edits are untouched and no question is asked. |
+| 9 | Drop a file that cannot be opened (a file locked by another program, or UTF-16 with a byte removed) together with a good one | The good one opens; the bad one shows its own error dialog. |
+| 10 | Select some text in the editor and drag it to another place in the same editor | The text moves as before (drag and drop of text still works). |
+| 11 | Select text in another program (Notepad, a browser) and drop it into Scribe | The text is inserted at the drop point. |
+| 12 | Drag a link out of a browser's address bar or a web page into the editor | The link text is inserted (it is not treated as a file). |
+| 13 | Drop a file onto the menu bar | Nothing happens (known gap). |
+| 14 | Keep Explorer visible while dropping a file that fails to open | Explorer is not frozen while the error dialog is open (the drop finishes first). |
+| 15 | Run Scribe as administrator and drag from a normal Explorer window | Windows blocks the drag. This is a Windows rule for all apps, not a bug. |
+
 ## Error handling
 
 | # | Steps | Expected |

@@ -30,13 +30,18 @@ void DocumentController::newFile()
 void DocumentController::openFile()
 {
     const QString path = m_dialogs.chooseOpenPath(m_dialogParent);
-    if (path.isEmpty()) {
-        return;
+    if (!path.isEmpty()) {
+        openFiles({path});
     }
+}
 
-    const scribe::core::IoResult result = m_tabs.openFile(path);
-    if (!result.ok()) {
-        showIoError(result, path, *m_tabs.currentEditor());
+void DocumentController::openFiles(const QStringList& paths)
+{
+    for (const QString& path : paths) {
+        const scribe::core::IoResult result = m_tabs.openFile(path);
+        if (!result.ok()) {
+            showIoError(result, path, *m_tabs.currentEditor());
+        }
     }
 }
 

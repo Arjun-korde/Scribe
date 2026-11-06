@@ -1,6 +1,7 @@
 #include "EditorTabs.h"
 
 #include "EditorWidget.h"
+#include "FileDropFilter.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -17,6 +18,13 @@ EditorTabs::EditorTabs(QWidget* parent)
     setTabsClosable(true);
     setMovable(true);
     tabBar()->installEventFilter(this);
+
+    // Files dragged from Explorer can land on the tab strip (this widget) or on an editor's text
+    // area (see adopt()). The tab bar itself does not take drops, so Qt hands them to this widget.
+    m_dropFilter = new FileDropFilter(this);
+    setAcceptDrops(true);
+    installEventFilter(m_dropFilter);
+    connect(m_dropFilter, &FileDropFilter::filesDropped, this, &EditorTabs::filesDropped);
 
     connect(this, &QTabWidget::tabCloseRequested, this, &EditorTabs::closeTab);
     connect(this, &QTabWidget::currentChanged, this, [this] {
@@ -166,6 +174,10 @@ bool EditorTabs::eventFilter(QObject* watched, QEvent* event)
 EditorWidget* EditorTabs::adopt(std::unique_ptr<EditorWidget> editor)
 {
     EditorWidget* raw = editor.release(); // the tab widget owns it from here on
+
+    // The text area takes drops itself, so file drops must be caught there before it inserts them.
+    raw->viewport()->setAcceptDrops(true);
+    raw->viewport()->installEventFilter(m_dropFilter);
     connect(raw, &EditorWidget::stateChanged, this, [this, raw] {
         refreshTab(raw);
         if (raw == currentEditor()) {

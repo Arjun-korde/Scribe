@@ -17,6 +17,9 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - Edit menu: Undo, Redo, Cut, Copy, Paste, Delete, Select All, and Insert Date/Time (`F5`, time then
   short date, like Notepad). Entries are greyed out when they cannot run, for example Copy without a
   selection or Undo with nothing to undo, and they act on the active tab.
+- Drag and drop: drop one or more files from Explorer onto the tab strip or any editor to open them,
+  one tab each, with the last one active. A file that is already open is switched to, and one that
+  fails shows its own error. Folders are ignored, and dragging or dropping text still works.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.
@@ -27,6 +30,9 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   the file's encoding cannot store.
 
 ### Known limitations
+- Dropping files on the menu bar does not open them (only the tab strip and the editors do).
+- Binary files (an `.exe`, an image) are not recognised: they open as garbage, or are refused if their
+  bytes would change on save. A file that fails while several are dropped shows one error per file.
 - Every unsaved tab is called "Untitled" (no numbering), and Save As to a file that is already open
   in another tab leaves two tabs for the same file.
 - A file with mixed line endings is saved using its most common line ending.
