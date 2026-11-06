@@ -39,6 +39,7 @@ protected:
 private:
     void registerCommands();
     void buildMenus();
+    void refreshMenuState(QMenu* menu);
     QAction* addCommandAction(QMenu* menu, const QString& commandId);
     void updateTitle();
 

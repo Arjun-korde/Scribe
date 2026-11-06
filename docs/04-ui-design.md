@@ -15,7 +15,7 @@
 
 ```
 +--------------------------------------------------------------+
-| [S] File Edit Search View Encoding Language Help  [mic] - [] x|  Title bar (32 px)
+| [icon] File Edit Search View Encoding Language Help [mic] - [] x|  Title bar (32 px)
 +--------------------------------------------------------------+
 | notes.txt  x | todo.md  *x | untitled 3  x |  +               |  Tab strip (36 px)
 +--------------------------------------------------------------+
@@ -63,13 +63,14 @@
 
 ## 4. Color tokens
 
-Names are role-based. Values are first-draft and still need a contrast check (target: text 4.5:1, UI components 3:1).
+Names are role-based. Values passed a contrast check (section 4.1; target: text 4.5:1, UI components 3:1).
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
 | `surface` | `#FFFFFF` | `#1E1E1E` | Editor background |
 | `surfaceChrome` | `#F3F3F3` | `#2B2B2B` | Tab strip, status bar, find bar |
-| `outline` | `#E0E0E0` | `#3A3A3A` | Dividers, borders |
+| `outline` | `#E0E0E0` | `#3A3A3A` | Dividers and decorative borders (dialogs, popups, buttons that also have a text label) |
+| `outlineStrong` | `#858585` | `#858585` | Borders that are the only thing marking a control: inputs, unselected toggles and segments |
 | `textPrimary` | `#1B1B1B` | `#E6E6E6` | Body and editor text |
 | `textMuted` | `#5C5C5C` | `#A0A0A0` | Gutter, status bar, hints |
 | `accent` | `#0F6CBD` | `#60CDFF` | Focus ring, primary button, links, toggled find options |
@@ -78,7 +79,7 @@ Names are role-based. Values are first-draft and still need a contrast check (ta
 | `error` | `#C42B1C` | `#FF99A4` | Errors (always paired with icon or text) |
 | `warning` | `#9D5D00` | `#FCE100` | Warnings, "too loud" microphone level |
 | `success` | `#0F7B0F` | `#6CCB5F` | Success |
-| `hover` | `#E9E9E9` | `#383838` | Hover fill for neutral controls, tabs, menu rows |
+| `hover` | `#E9E9E9` | `#353535` | Hover fill for neutral controls, tabs, menu rows |
 | `pressed` | `#DDDDDD` | `#444444` | Pressed fill for neutral controls |
 | `accentHover` | `#115EA3` | `#7BD6FF` | Hover fill for accent-filled buttons |
 | `accentPressed` | `#0C4B86` | `#4DBAEB` | Pressed fill for accent-filled buttons |
@@ -87,6 +88,47 @@ Rules:
 - `accent` is never decorative.
 - Color is never the only signal: modified tab = `*`, error = icon + message, match count = text.
 - The Theme is a data table loaded into `QPalette` plus a QSS template, so user themes (JSON) need no code changes.
+- Text on a `selection` fill (selected toggles and segments) uses `textPrimary`, not `accent`; the accent shows in the border. Accent text on the light selection color is only 4.1:1.
+- Control borders that identify a control use `outlineStrong`; `outline` is only for dividers and decoration.
+
+### 4.1 Contrast check (WCAG 2.x, calculated)
+
+Every text and control pair used in the design was calculated. The tokens above are the result of fixing the failures:
+
+| Failure found | Fix |
+|---|---|
+| Light: `accent` text on `selection` was 4.10:1 | Selected labels use `textPrimary` (13.1:1); accent stays on the border |
+| Dark: `textMuted` on `hover` was 4.48:1 | Dark `hover` changed from `#383838` to `#353535` (4.69:1) |
+| Both: `outline` on surfaces was 1.2 to 1.5:1, too faint for control borders | New `outlineStrong` `#858585`: 3.7:1 on `surface`, 3.3:1 on `surfaceChrome` (light); 4.5:1 and 3.8:1 (dark) |
+
+Lowest ratios that now pass (text needs 4.5:1):
+
+| Pair | Light | Dark |
+|---|---|---|
+| `textPrimary` on any surface or fill | 12.7 | 6.8 |
+| `textMuted` on `surfaceChrome` / `hover` | 6.0 / 5.5 | 5.4 / 4.7 |
+| `accent` on `surface` / `surfaceChrome` | 5.4 / 4.9 | 9.3 / 7.9 |
+| `surface` text on `accent`, `accentHover`, `accentPressed` | 5.4 | 7.6 |
+| `error`, `warning`, `success` on `surfaceChrome` | 5.1, 4.7, 4.9 | 7.0, 10.7, 7.0 |
+
+Not required to pass: disabled controls (40% opacity) and decorative dividers.
+
+### 4.2 Syntax highlighting palette
+
+Eight tokens per theme (`syntax/<name>` in Figma). Each is at least 4.5:1 on both `surface` and `currentLine`. Operators, punctuation and identifiers use `textPrimary`. Inside a text selection all text is drawn in `textPrimary` (Qt `HighlightedText`), so syntax colors never sit on the selection fill.
+
+| Token | Light | Dark | Style | Used for |
+|---|---|---|---|---|
+| `syntax/keyword` | `#8E24AA` | `#D291D0` | Regular | Keywords, preprocessor |
+| `syntax/string` | `#A31515` | `#E0A184` | Regular | String and character literals |
+| `syntax/number` | `#0B7A53` | `#B5CEA8` | Regular | Numbers |
+| `syntax/comment` | `#5F6B76` | `#7FA66E` | Italic | Comments |
+| `syntax/function` | `#7A5A1E` | `#E3D79F` | Regular | Function and method names at call sites |
+| `syntax/type` | `#1F7A8C` | `#56D4BD` | Regular | Types and classes |
+| `syntax/constant` | `#0B63B5` | `#6CB6F0` | Regular | Enum values, constants, booleans |
+| `syntax/tag` | `#C2410C` | `#F0907C` | Semibold for Markdown headings | Markup tags |
+
+Lowest ratio on `surface`: light 4.98:1 (`type`), dark 6.02:1 (`comment`). Color is not the only cue: comments are italic and headings are semibold. Language support (Phase 2) maps each language's token types onto these eight names; users can override them in a theme file.
 
 ## 5. Typography
 
@@ -223,10 +265,11 @@ Pending in Figma:
 - [ ] Window-control glyphs are text characters in the mock; replace with real icons.
 - [ ] The tab context menu and editor context menu have no submenu designs (not needed yet).
 
+Also done in Figma: contrast fixes applied to the variables and existing frames (`outlineStrong`, dark `hover`, selected labels), the `syntax/*` variables and a Syntax highlighting sheet per theme (sample plus token table with ratios).
+
 Pending design decisions and checks:
-- [ ] Contrast check on all color tokens, including the four new ones (target 4.5:1 text, 3:1 components)
-- [ ] Syntax-highlighting palette (about 8 hues, per theme), needed in Phase 2
-- [ ] Final app icon (the "S" square is a placeholder) and final name
+- [ ] Final app name. "Scribe" is a working name; check availability (trademark, GitHub, winget) before the release phase
+- [ ] Syntax palette is only checked by numbers; review it on real code in the prototype and adjust
 - [ ] Inter stands in for Segoe UI in Figma (Segoe UI is not available there)
 - [ ] Toolbar decision (decision 5)
 - [ ] Test at 150% and 200% scaling and with large OS text
@@ -235,7 +278,7 @@ Pending design decisions and checks:
 
 ## 13. Next steps
 
-1. Run the contrast check on all color tokens and fix failures.
-2. Do the title bar spike (decision 6).
+1. Do the title bar spike (decision 6).
+2. Decide the toolbar question (decision 5) and the final app name.
 3. Rebuild the early frames from components and merge the light and dark component sets when possible.
 4. Implement `Theme` (tokens to `QPalette` and QSS), then the title bar, tab strip and status bar as the first styled components.

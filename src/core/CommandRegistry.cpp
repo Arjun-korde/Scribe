@@ -19,13 +19,21 @@ const Command* CommandRegistry::find(const QString& id) const
     return it == m_indexById.constEnd() ? nullptr : &m_commands[it.value()];
 }
 
-bool CommandRegistry::run(const QString& id) const
+bool CommandRegistry::isEnabled(const QString& id) const
 {
     const Command* command = find(id);
     if (command == nullptr || !command->enabled) {
         return false;
     }
-    command->callback();
+    return !command->enabledWhen || command->enabledWhen();
+}
+
+bool CommandRegistry::run(const QString& id) const
+{
+    if (!isEnabled(id)) {
+        return false;
+    }
+    find(id)->callback();
     return true;
 }
 

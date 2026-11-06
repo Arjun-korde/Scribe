@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 
 #include "DocumentController.h"
+#include "EditCommands.h"
 #include "EditorTabs.h"
 #include "EditorWidget.h"
 #include "FileCommands.h"
@@ -12,6 +13,7 @@
 #include <QMenu>
 #include <QMenuBar>
 
+using scribe::editor::EditCommands;
 using scribe::editor::TabCommands;
 
 MainWindow::MainWindow(QWidget* parent)
@@ -59,12 +61,21 @@ void MainWindow::closeEvent(QCloseEvent* event)
 void MainWindow::registerCommands()
 {
     FileCommands::registerIn(m_commands, *m_controller, *this);
+    EditCommands::registerIn(m_commands, *m_tabs);
     TabCommands::registerIn(m_commands, *m_tabs);
 }
 
 void MainWindow::buildMenus()
 {
-    QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
+    // Menus show a command as available only if it can run right now (for example Copy needs a
+    // selection), so they ask the registry each time they open.
+    const auto addMenu = [this](const QString& title) {
+        QMenu* menu = menuBar()->addMenu(title);
+        connect(menu, &QMenu::aboutToShow, this, [this, menu] { refreshMenuState(menu); });
+        return menu;
+    };
+
+    QMenu* fileMenu = addMenu(tr("&File"));
     addCommandAction(fileMenu, FileCommands::kNew);
     addCommandAction(fileMenu, FileCommands::kOpen);
     addCommandAction(fileMenu, FileCommands::kSave);
@@ -76,9 +87,30 @@ void MainWindow::buildMenus()
     fileMenu->addSeparator();
     addCommandAction(fileMenu, FileCommands::kExit);
 
-    QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
+    QMenu* editMenu = addMenu(tr("&Edit"));
+    addCommandAction(editMenu, EditCommands::kUndo);
+    addCommandAction(editMenu, EditCommands::kRedo);
+    editMenu->addSeparator();
+    addCommandAction(editMenu, EditCommands::kCut);
+    addCommandAction(editMenu, EditCommands::kCopy);
+    addCommandAction(editMenu, EditCommands::kPaste);
+    addCommandAction(editMenu, EditCommands::kDelete);
+    editMenu->addSeparator();
+    addCommandAction(editMenu, EditCommands::kSelectAll);
+    addCommandAction(editMenu, EditCommands::kInsertDateTime);
+
+    QMenu* viewMenu = addMenu(tr("&View"));
     addCommandAction(viewMenu, TabCommands::kNext);
     addCommandAction(viewMenu, TabCommands::kPrevious);
+}
+
+void MainWindow::refreshMenuState(QMenu* menu)
+{
+    for (QAction* action : menu->actions()) {
+        if (!action->isSeparator()) {
+            action->setEnabled(m_commands.isEnabled(action->objectName()));
+        }
+    }
 }
 
 QAction* MainWindow::addCommandAction(QMenu* menu, const QString& commandId)

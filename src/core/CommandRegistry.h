@@ -17,7 +17,14 @@ struct Command
     QString title;    ///< Display text for menus and the palette.
     QString shortcut; ///< Portable text such as "Ctrl+Shift+S", empty for none.
     std::function<void()> callback;
+
+    /// Fixed on/off switch, changed with CommandRegistry::setEnabled().
     bool enabled = true;
+
+    /// Optional live condition, evaluated each time the state is needed, for example "the editor
+    /// has a selection". Empty means always satisfied. A command is available only when `enabled`
+    /// is true and this condition (if any) holds.
+    std::function<bool()> enabledWhen;
 };
 
 /// The central list of commands. It has no widget dependency, so the UI layer builds menu
@@ -32,8 +39,13 @@ public:
     /// The command with this id, or nullptr. The pointer is valid until the next registration.
     const Command* find(const QString& id) const;
 
+    /// Whether the command can run right now: it exists, `enabled` is set and `enabledWhen` (if
+    /// any) holds. The fixed switch is checked first, so the condition is not evaluated for a
+    /// command that is switched off. Menus and the command palette call this when they open.
+    bool isEnabled(const QString& id) const;
+
     /// Runs the command. Returns false without running anything when the id is unknown or the
-    /// command is disabled.
+    /// command is not enabled (see isEnabled).
     bool run(const QString& id) const;
 
     /// Returns false when the id is unknown.

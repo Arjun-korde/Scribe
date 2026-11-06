@@ -14,6 +14,9 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - Unsaved-changes prompt (Save / Don't Save / Cancel) when closing a modified tab, Close Other Tabs,
   Close All Tabs, or the window (Exit, the X button, `Alt+F4`). Cancel, a cancelled Save As or a failed
   save keeps everything open, so nothing is lost. `Ctrl+N` and `Ctrl+O` never ask.
+- Edit menu: Undo, Redo, Cut, Copy, Paste, Delete, Select All, and Insert Date/Time (`F5`, time then
+  short date, like Notepad). Entries are greyed out when they cannot run, for example Copy without a
+  selection or Undo with nothing to undo, and they act on the active tab.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.

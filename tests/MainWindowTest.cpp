@@ -50,6 +50,10 @@ private slots:
     void closeTabCommandAsksAboutThatTab();
     void exitClosesTheWindow();
 
+    void editMenuEntriesAreAvailableOnlyWhenTheyCanRun();
+    void editMenuEntriesRunTheirCommands();
+    void realKeystrokesEditTheText();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
     void write(const QString& name, const QByteArray& bytes) const;
@@ -134,14 +138,17 @@ void MainWindowTest::fileMenuIsBuiltFromRegisteredCommands()
     MainWindow window(scriptedDialogs());
 
     const QList<QAction*> menus = window.menuBar()->actions();
-    QCOMPARE(menus.size(), 2);
+    QCOMPARE(menus.size(), 3);
     QCOMPARE(menus.at(0)->text(), QStringLiteral("&File"));
-    QCOMPARE(menus.at(1)->text(), QStringLiteral("&View"));
+    QCOMPARE(menus.at(1)->text(), QStringLiteral("&Edit"));
+    QCOMPARE(menus.at(2)->text(), QStringLiteral("&View"));
 
     // Menu entries must be the registry's commands, with the registry's shortcuts.
-    const QStringList ids = {"file.new",  "file.open",   "file.save",       "file.saveAs",
-                             "file.exit", "tab.close",   "tab.closeOthers", "tab.closeAll",
-                             "tab.next",  "tab.previous"};
+    const QStringList ids = {
+        "file.new",    "file.open",       "file.save",          "file.saveAs", "file.exit",
+        "tab.close",   "tab.closeOthers", "tab.closeAll",       "tab.next",    "tab.previous",
+        "edit.undo",   "edit.redo",       "edit.cut",           "edit.copy",   "edit.paste",
+        "edit.delete", "edit.selectAll",  "edit.insertDateTime"};
     for (const QString& id : ids) {
         const auto* command = window.commands().find(id);
         QVERIFY2(command != nullptr, qPrintable(id));
@@ -538,6 +545,80 @@ void MainWindowTest::closeTabCommandAsksAboutThatTab()
     window.commands().run("tab.close");
     QCOMPARE(window.tabCount(), 1);
     QCOMPARE(m_promptedFor.size(), 2);
+}
+
+void MainWindowTest::editMenuEntriesAreAvailableOnlyWhenTheyCanRun()
+{
+    MainWindow window(scriptedDialogs());
+    QMenu* editMenu = window.findChildren<QMenu*>().at(1); // File, Edit, View
+    QCOMPARE(editMenu->title(), QStringLiteral("&Edit"));
+    const auto action = [&](const char* id) { return window.findChild<QAction*>(id); };
+
+    emit editMenu->aboutToShow();               // what Qt does just before the menu appears
+    QVERIFY(!action("edit.undo")->isEnabled()); // nothing typed yet
+    QVERIFY(!action("edit.copy")->isEnabled());
+    QVERIFY(action("edit.selectAll")->isEnabled());
+    QVERIFY(action("edit.insertDateTime")->isEnabled());
+
+    type(window, "some text");
+    window.editor()->selectAll();
+    emit editMenu->aboutToShow();
+    QVERIFY(action("edit.undo")->isEnabled());
+    QVERIFY(action("edit.cut")->isEnabled());
+    QVERIFY(action("edit.copy")->isEnabled());
+    QVERIFY(action("edit.delete")->isEnabled());
+
+    window.editor()->moveCursor(QTextCursor::End); // selection gone again
+    emit editMenu->aboutToShow();
+    QVERIFY(!action("edit.copy")->isEnabled());
+    QVERIFY(!action("edit.delete")->isEnabled());
+}
+
+void MainWindowTest::editMenuEntriesRunTheirCommands()
+{
+    MainWindow window(scriptedDialogs());
+    type(window, "abc");
+
+    window.findChild<QAction*>("edit.undo")->trigger();
+    QCOMPARE(window.editor()->toPlainText(), QString());
+
+    window.findChild<QAction*>("edit.redo")->trigger();
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("abc"));
+
+    window.findChild<QAction*>("edit.selectAll")->trigger();
+    QCOMPARE(window.editor()->textCursor().selectedText(), QStringLiteral("abc"));
+}
+
+void MainWindowTest::realKeystrokesEditTheText()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QVERIFY(window.editor()->hasFocus());
+    QPlainTextEdit* editor = window.editor();
+
+    // The menu's shortcuts must not get in the way of the editor's own key handling.
+    QTest::keyClicks(editor, "abcd");
+    QCOMPARE(editor->toPlainText(), QStringLiteral("abcd"));
+
+    QTest::keyClick(editor, Qt::Key_Home);
+    QTest::keyClick(editor, Qt::Key_Delete); // no selection: must still delete the next character
+    QCOMPARE(editor->toPlainText(), QStringLiteral("bcd"));
+
+    QTest::keyClick(editor, Qt::Key_A, Qt::ControlModifier);
+    QCOMPARE(editor->textCursor().selectedText(), QStringLiteral("bcd"));
+
+    QTest::keyClick(editor, Qt::Key_Delete); // with a selection: removes it
+    QCOMPARE(editor->toPlainText(), QString());
+
+    QTest::keyClick(editor, Qt::Key_Z, Qt::ControlModifier);
+    QVERIFY(!editor->toPlainText().isEmpty()); // undo brought text back
+    QTest::keyClick(editor, Qt::Key_Y, Qt::ControlModifier);
+
+    QTest::keyClick(editor, Qt::Key_F5); // inserts the date and time
+    QVERIFY2(editor->toPlainText().contains(QRegularExpression(QStringLiteral("\\d"))) &&
+                 editor->toPlainText().size() >= 6,
+             qPrintable(editor->toPlainText()));
 }
 
 QTEST_MAIN(MainWindowTest)

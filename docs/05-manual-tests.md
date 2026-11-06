@@ -56,6 +56,24 @@ Use a saved file `a.txt` and an untitled tab with some typed text. A tab is "mod
 | 11 | `Ctrl+N` and `Ctrl+O` while the current tab is modified | No question: they add a tab and never touch the modified one. |
 | 12 | Close the window when every tab is unmodified | It closes at once, without a dialog. |
 
+## Edit menu
+
+Use two tabs with some text. Check the menu with the mouse and the shortcuts with the keyboard.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Open the Edit menu in a fresh empty tab | Undo, Redo, Cut, Copy, Delete are greyed out. Select All and Insert Date/Time are available. Paste is available only if the clipboard has text. |
+| 2 | Type a word, open the Edit menu | Undo is available. Cut, Copy and Delete are still greyed out (no selection). |
+| 3 | Select the word, open the Edit menu | Cut, Copy and Delete are now available. |
+| 4 | Click Copy, move the caret, click Paste | The word is pasted. Paste works from text copied in another program too. |
+| 5 | `Ctrl+Z`, then `Ctrl+Y` | The typing is undone, then redone. The Edit menu entries follow (Redo is available only after an undo). |
+| 6 | Put the caret before a letter and press `Delete` | The next letter is removed. With a selection, the selection is removed. Edit > Delete with no selection is greyed out. |
+| 7 | `Ctrl+A`, `Ctrl+X`, `Ctrl+V` | Everything is selected, cut, and pasted back. |
+| 8 | Press `F5` | The time and short date are inserted at the caret, in the format of the Windows region settings (for example `3:45 PM 11/6/2026`). With text selected, the selection is replaced. |
+| 9 | Type `at: `, press `F5`, then `Ctrl+Z` once | Only the date and time disappear; `at: ` stays. |
+| 10 | Switch tabs and use Edit commands | They act on the active tab only. The menu state changes with the tab (for example Undo is greyed out in a tab with no edits). |
+| 11 | Right-click in the editor | Qt's built-in context menu appears and works. (It is not the styled menu from the design yet.) |
+
 ## Error handling
 
 | # | Steps | Expected |
