@@ -34,6 +34,14 @@ public:
 
     void newFile();
     void openFile();
+
+    /// Opens each file in order, with the same rules as File > Open: a file that is already open
+    /// is switched to, an untouched empty tab is reused, anything else gets a new tab. The last
+    /// file to open (or be switched to) is left active. A file that fails shows its own error
+    /// dialog; the other files are still opened. Never asks about unsaved changes, since opening
+    /// only adds tabs. Used by drag and drop.
+    void openFiles(const QStringList& paths);
+
     void saveFile();
     void saveFileAs();
 

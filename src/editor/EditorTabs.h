@@ -11,6 +11,7 @@ namespace scribe::editor
 {
 
 class EditorWidget;
+class FileDropFilter;
 
 /// The row of document tabs. Each tab holds one EditorWidget. There is always at least one tab:
 /// closing the last one leaves a fresh, empty "Untitled" tab.
@@ -66,6 +67,11 @@ signals:
     /// line ending) changes. Changes in background tabs do not emit it.
     void currentEditorStateChanged();
 
+    /// Files were dropped on the tab strip or on any editor, in the order they were dragged. Only
+    /// local, existing files are reported. The tabs do not open them: whoever connects decides.
+    /// Emitted after the drop has returned, so it is safe to show dialogs from the slot.
+    void filesDropped(const QStringList& paths);
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
@@ -82,6 +88,7 @@ private:
     static bool isUntouchedUntitled(const EditorWidget& editor);
 
     CloseGuard m_closeGuard;
+    FileDropFilter* m_dropFilter = nullptr; // owned by this widget
 };
 
 } // namespace scribe::editor

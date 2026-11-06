@@ -33,6 +33,8 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
 
     connect(m_tabs, &scribe::editor::EditorTabs::currentEditorStateChanged, this,
             &MainWindow::updateTitle);
+    connect(m_tabs, &scribe::editor::EditorTabs::filesDropped, this,
+            [this](const QStringList& paths) { m_controller->openFiles(paths); });
     updateTitle();
 }
 

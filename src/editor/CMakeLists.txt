@@ -3,6 +3,8 @@ add_library(scribe_editor STATIC
     EditorWidget.cpp
     EditorTabs.h
     EditorTabs.cpp
+    FileDropFilter.h
+    FileDropFilter.cpp
     TabCommands.h
     TabCommands.cpp
     EditCommands.h

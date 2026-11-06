@@ -3,10 +3,15 @@
 #include "EditorWidget.h"
 
 #include <QAction>
+#include <QApplication>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFile>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <QtTest>
 
 #include <memory>
@@ -54,11 +59,15 @@ private slots:
     void editMenuEntriesRunTheirCommands();
     void realKeystrokesEditTheText();
 
+    void droppingFilesOnTheWindowOpensThemInTabs();
+    void droppingAFailingFileShowsAnError();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
     void write(const QString& name, const QByteArray& bytes) const;
     QByteArray read(const QString& name) const;
     void type(MainWindow& window, const QString& text) const;
+    static void dragAndDrop(QWidget* target, const QMimeData& mime);
 
     // Scripted answers for the dialogs, plus a record of what was asked.
     FileDialogs scriptedDialogs();
@@ -619,6 +628,51 @@ void MainWindowTest::realKeystrokesEditTheText()
     QVERIFY2(editor->toPlainText().contains(QRegularExpression(QStringLiteral("\\d"))) &&
                  editor->toPlainText().size() >= 6,
              qPrintable(editor->toPlainText()));
+}
+
+// A real drag enters a widget before it drops, and Qt routes the drop to the widget that accepted
+// the enter, so the two events are sent in that order.
+void MainWindowTest::dragAndDrop(QWidget* target, const QMimeData& mime)
+{
+    QDragEnterEvent enter(QPoint(5, 5), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(target, &enter);
+    QDropEvent drop(QPointF(5, 5), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(target, &drop);
+}
+
+void MainWindowTest::droppingFilesOnTheWindowOpensThemInTabs()
+{
+    const QString first = path("a.txt");
+    const QString second = path("b.txt");
+    write("a.txt", "one");
+    write("b.txt", "two");
+    MainWindow window(scriptedDialogs());
+
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(first), QUrl::fromLocalFile(second)});
+    dragAndDrop(window.editor()->viewport(), mime);
+
+    QTRY_COMPARE(window.tabCount(), 2); // the drop returns first; the files open right after
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("two")); // the last one is active
+    QCOMPARE(window.windowTitle(), QStringLiteral("b.txt[*] - Scribe"));
+    QVERIFY(m_promptedFor.isEmpty());
+    QVERIFY(m_errors.isEmpty());
+}
+
+void MainWindowTest::droppingAFailingFileShowsAnError()
+{
+    MainWindow window(scriptedDialogs());
+
+    // The file exists when dragged (the drop filter checks) but cannot be opened as text safely.
+    const QString bad = path("odd.txt");
+    write("odd.txt", QByteArray::fromHex("FFFE6800690000"));
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(bad)});
+    dragAndDrop(window.editor()->viewport(), mime);
+
+    QTRY_COMPARE(m_errors.size(), 1);
+    QVERIFY2(m_errors.first().contains("odd.txt"), qPrintable(m_errors.first()));
+    QCOMPARE(window.tabCount(), 1);
 }
 
 QTEST_MAIN(MainWindowTest)
