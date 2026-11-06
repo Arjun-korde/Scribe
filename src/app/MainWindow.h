@@ -11,6 +11,7 @@ class DocumentController;
 
 namespace scribe::editor
 {
+class EditorStatusBar;
 class EditorTabs;
 class EditorWidget;
 } // namespace scribe::editor
@@ -44,7 +45,9 @@ private:
     void updateTitle();
 
     scribe::core::CommandRegistry m_commands;
-    scribe::editor::EditorTabs* m_tabs = nullptr; // owned by Qt as the central widget
+    scribe::editor::EditorTabs* m_tabs = nullptr;           // owned by Qt as the central widget
+    scribe::editor::EditorStatusBar* m_statusBar = nullptr; // the window's status bar, owned by Qt
+    decltype(FileDialogs::chooseFont) m_chooseFont;         // for the View > Font command
     // Declared last, so it is destroyed first: it holds a guard installed on m_tabs.
     std::unique_ptr<DocumentController> m_controller;
 };

@@ -48,6 +48,15 @@ signals:
     /// Emitted when the path, the modified state, the encoding or the line ending changes.
     void stateChanged();
 
+    /// Ctrl+wheel was used: zoom by `steps` notches (positive zooms in). The editor does not zoom
+    /// itself, so that all tabs share one zoom level.
+    void zoomRequested(int steps);
+
+protected:
+    /// Turns Ctrl+wheel into zoomRequested(). QPlainTextEdit would otherwise change the font size
+    /// on its own, in points, outside the shared zoom percentage.
+    void wheelEvent(QWheelEvent* event) override;
+
 private:
     /// Copies the widget text into the Document when the two differ. Comparing the text, rather
     /// than trusting modified flags, covers every case: a failed save leaves the Document holding
@@ -58,6 +67,8 @@ private:
     void markSaved();
 
     core::Document m_fileDocument;
+    int m_wheelRemainder =
+        0; ///< Wheel movement not yet worth a full notch (touchpads send tiny ones).
 };
 
 } // namespace scribe::editor

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Document.h"
+#include "ViewSettings.h"
 
 #include <QTabWidget>
 
@@ -62,7 +63,26 @@ public:
     void nextTab();
     void previousTab();
 
+    /// Wrapping, font and zoom, shared by every tab (existing and future ones). Each setter
+    /// applies the change to all editors and emits viewSettingsChanged() only if something
+    /// actually changed.
+    [[nodiscard]] const ViewSettings& viewSettings() const { return m_viewSettings; }
+    void setWordWrap(bool wrap);
+
+    /// Changes the font family and size; the current zoom stays on top of it.
+    void setBaseFont(const QFont& font);
+
+    /// Clamped to ViewSettings::kMinZoomPercent..kMaxZoomPercent.
+    void setZoomPercent(int percent);
+
+    /// Zooms by `steps` x ViewSettings::kZoomStepPercent (negative zooms out).
+    void zoomBy(int steps);
+    void resetZoom();
+
 signals:
+    /// Emitted when word wrap, the font or the zoom changes.
+    void viewSettingsChanged();
+
     /// Emitted when the active tab changes or the active editor's state (name, modified, encoding,
     /// line ending) changes. Changes in background tabs do not emit it.
     void currentEditorStateChanged();
@@ -87,7 +107,15 @@ private:
 
     static bool isUntouchedUntitled(const EditorWidget& editor);
 
+    /// Puts the shared view settings on one editor.
+    void applyViewSettings(EditorWidget& editor) const;
+
+    /// Stores `settings`, applies them to every tab and tells listeners, if they differ from the
+    /// current ones.
+    void changeViewSettings(const ViewSettings& settings);
+
     CloseGuard m_closeGuard;
+    ViewSettings m_viewSettings;
     FileDropFilter* m_dropFilter = nullptr; // owned by this widget
 };
 

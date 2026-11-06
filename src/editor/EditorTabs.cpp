@@ -156,6 +156,56 @@ void EditorTabs::previousTab()
     }
 }
 
+void EditorTabs::setWordWrap(bool wrap)
+{
+    ViewSettings settings = m_viewSettings;
+    settings.wordWrap = wrap;
+    changeViewSettings(settings);
+}
+
+void EditorTabs::setBaseFont(const QFont& font)
+{
+    ViewSettings settings = m_viewSettings;
+    settings.font = font;
+    changeViewSettings(settings);
+}
+
+void EditorTabs::setZoomPercent(int percent)
+{
+    ViewSettings settings = m_viewSettings;
+    settings.zoomPercent = ViewSettings::clampZoom(percent);
+    changeViewSettings(settings);
+}
+
+void EditorTabs::zoomBy(int steps)
+{
+    setZoomPercent(m_viewSettings.zoomPercent + steps * ViewSettings::kZoomStepPercent);
+}
+
+void EditorTabs::resetZoom()
+{
+    setZoomPercent(ViewSettings::kDefaultZoomPercent);
+}
+
+void EditorTabs::applyViewSettings(EditorWidget& editor) const
+{
+    editor.setLineWrapMode(m_viewSettings.wordWrap ? QPlainTextEdit::WidgetWidth
+                                                   : QPlainTextEdit::NoWrap);
+    editor.setFont(m_viewSettings.zoomedFont());
+}
+
+void EditorTabs::changeViewSettings(const ViewSettings& settings)
+{
+    if (settings == m_viewSettings) {
+        return;
+    }
+    m_viewSettings = settings;
+    for (int i = 0; i < count(); ++i) {
+        applyViewSettings(*editorAt(i));
+    }
+    emit viewSettingsChanged();
+}
+
 bool EditorTabs::eventFilter(QObject* watched, QEvent* event)
 {
     if (watched == tabBar() && event->type() == QEvent::MouseButtonRelease) {
@@ -178,6 +228,9 @@ EditorWidget* EditorTabs::adopt(std::unique_ptr<EditorWidget> editor)
     // The text area takes drops itself, so file drops must be caught there before it inserts them.
     raw->viewport()->setAcceptDrops(true);
     raw->viewport()->installEventFilter(m_dropFilter);
+
+    applyViewSettings(*raw);
+    connect(raw, &EditorWidget::zoomRequested, this, &EditorTabs::zoomBy);
     connect(raw, &EditorWidget::stateChanged, this, [this, raw] {
         refreshTab(raw);
         if (raw == currentEditor()) {

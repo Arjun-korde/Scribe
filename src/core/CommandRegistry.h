@@ -25,6 +25,14 @@ struct Command
     /// has a selection". Empty means always satisfied. A command is available only when `enabled`
     /// is true and this condition (if any) holds.
     std::function<bool()> enabledWhen;
+
+    /// Optional live check state for toggles such as "Word Wrap". When set, the command is a
+    /// toggle: menus show it with a check mark that follows this function. Empty means an
+    /// ordinary command with no check mark.
+    std::function<bool()> checkedWhen;
+
+    /// A second shortcut for the same command (for example `Ctrl+=` next to `Ctrl++`), or empty.
+    QString alternateShortcut;
 };
 
 /// The central list of commands. It has no widget dependency, so the UI layer builds menu
@@ -43,6 +51,10 @@ public:
     /// any) holds. The fixed switch is checked first, so the condition is not evaluated for a
     /// command that is switched off. Menus and the command palette call this when they open.
     bool isEnabled(const QString& id) const;
+
+    /// Whether a toggle command is currently on. False for an unknown id and for commands that
+    /// are not toggles (no `checkedWhen`).
+    bool isChecked(const QString& id) const;
 
     /// Runs the command. Returns false without running anything when the id is unknown or the
     /// command is not enabled (see isEnabled).
