@@ -121,3 +121,53 @@ TEST(CommandRegistry, LookupsStayCorrectAfterManyRegistrations)
         EXPECT_EQ(command->id, QString::number(i));
     }
 }
+
+TEST(CommandRegistry, LiveConditionDecidesWhetherACommandRuns)
+{
+    CommandRegistry registry;
+    int calls = 0;
+    bool allowed = false;
+    Command command = makeCommand(QStringLiteral("x"), [&] { ++calls; });
+    command.enabledWhen = [&] { return allowed; };
+    ASSERT_TRUE(registry.registerCommand(command));
+
+    EXPECT_FALSE(registry.isEnabled(QStringLiteral("x")));
+    EXPECT_FALSE(registry.run(QStringLiteral("x")));
+    EXPECT_EQ(calls, 0);
+
+    allowed = true; // the condition is read again each time, not remembered
+    EXPECT_TRUE(registry.isEnabled(QStringLiteral("x")));
+    EXPECT_TRUE(registry.run(QStringLiteral("x")));
+    EXPECT_EQ(calls, 1);
+}
+
+TEST(CommandRegistry, SwitchedOffCommandIgnoresItsCondition)
+{
+    CommandRegistry registry;
+    int conditionChecks = 0;
+    Command command = makeCommand(QStringLiteral("x"));
+    command.enabledWhen = [&] {
+        ++conditionChecks;
+        return true;
+    };
+    registry.registerCommand(command);
+
+    ASSERT_TRUE(registry.setEnabled(QStringLiteral("x"), false));
+    EXPECT_FALSE(registry.isEnabled(QStringLiteral("x")));
+    EXPECT_EQ(conditionChecks, 0); // the cheap switch is checked first
+}
+
+TEST(CommandRegistry, CommandWithoutAConditionIsEnabledByItsSwitchAlone)
+{
+    CommandRegistry registry;
+    registry.registerCommand(makeCommand(QStringLiteral("x")));
+    EXPECT_TRUE(registry.isEnabled(QStringLiteral("x")));
+    registry.setEnabled(QStringLiteral("x"), false);
+    EXPECT_FALSE(registry.isEnabled(QStringLiteral("x")));
+}
+
+TEST(CommandRegistry, UnknownIdIsNotEnabled)
+{
+    const CommandRegistry registry;
+    EXPECT_FALSE(registry.isEnabled(QStringLiteral("nope")));
+}

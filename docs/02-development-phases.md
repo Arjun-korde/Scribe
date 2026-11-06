@@ -60,8 +60,8 @@ Effort assumes part-time work and can be adjusted.
 - [x] Close other tabs / close all
 
 **Edit**
-- [ ] Undo, Redo, Cut, Copy, Paste, Delete, Select All
-- [ ] Insert date/time (F5)
+- [x] Undo, Redo, Cut, Copy, Paste, Delete, Select All
+- [x] Insert date/time (F5)
 
 **Search**
 - [ ] Find, Find Next, Find Previous
