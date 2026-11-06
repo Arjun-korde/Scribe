@@ -70,10 +70,10 @@ Effort assumes part-time work and can be adjusted.
 - [ ] Go To Line
 
 **Format and View**
-- [ ] Word wrap toggle
-- [ ] Font selection
-- [ ] Zoom: Ctrl+wheel, Ctrl+Plus, Ctrl+Minus, Ctrl+0
-- [ ] Status bar: line and column, character count, zoom %, encoding, line ending
+- [x] Word wrap toggle
+- [x] Font selection
+- [x] Zoom: Ctrl+wheel, Ctrl+Plus, Ctrl+Minus, Ctrl+0
+- [x] Status bar: line and column, character count, zoom %, encoding, line ending
 
 **Text correctness**
 - [x] Encoding detection and handling: UTF-8 (with and without BOM), UTF-16 LE/BE, ANSI

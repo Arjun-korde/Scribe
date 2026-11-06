@@ -1,6 +1,7 @@
 #include "EditorWidget.h"
 
 #include <QFileInfo>
+#include <QWheelEvent>
 
 namespace scribe::editor
 {
@@ -89,6 +90,26 @@ void EditorWidget::markSaved()
 {
     document()->setModified(false);
     emit stateChanged();
+}
+
+void EditorWidget::wheelEvent(QWheelEvent* event)
+{
+    if (!(event->modifiers() & Qt::ControlModifier)) {
+        QPlainTextEdit::wheelEvent(event);
+        return;
+    }
+
+    // One notch of a mouse wheel is 120 units. Touchpads send many small movements, so collect
+    // them until they add up to a notch.
+    constexpr int kUnitsPerNotch = 120;
+    m_wheelRemainder += event->angleDelta().y();
+    const int steps = m_wheelRemainder / kUnitsPerNotch;
+    m_wheelRemainder -= steps * kUnitsPerNotch;
+
+    if (steps != 0) {
+        emit zoomRequested(steps);
+    }
+    event->accept();
 }
 
 } // namespace scribe::editor

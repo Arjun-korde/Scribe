@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QFont>
 #include <QString>
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 
 class QWidget;
 
@@ -31,6 +33,10 @@ struct FileDialogs
     /// Asks what to do with the unsaved changes of the document called `documentName`. A missing
     /// function counts as Cancel, so changes are never discarded by accident.
     std::function<UnsavedChoice(QWidget* parent, const QString& documentName)> confirmDiscard;
+
+    /// Asks for a font, starting from `current`. std::nullopt means the user cancelled. A missing
+    /// function makes the Font command unavailable.
+    std::function<std::optional<QFont>(QWidget* parent, const QFont& current)> chooseFont;
 };
 
 FileDialogs defaultFileDialogs();

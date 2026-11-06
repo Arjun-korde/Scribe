@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 
+#include "EditorStatusBar.h"
 #include "EditorWidget.h"
 
 #include <QAction>
@@ -12,9 +13,11 @@
 #include <QMimeData>
 #include <QTemporaryDir>
 #include <QUrl>
+#include <QWheelEvent>
 #include <QtTest>
 
 #include <memory>
+#include <optional>
 
 using scribe::editor::EditorWidget;
 
@@ -62,6 +65,17 @@ private slots:
     void droppingFilesOnTheWindowOpensThemInTabs();
     void droppingAFailingFileShowsAnError();
 
+    void viewMenuHasTheViewCommandsWithShortcuts();
+    void viewMenuChecksFollowWordWrapAndStatusBar();
+    void wordWrapMenuEntryTogglesEveryTab();
+    void statusBarMenuEntryHidesAndShowsTheBar();
+    void statusBarFollowsTypingAndTabsInTheWindow();
+    void fontMenuEntryAppliesTheChosenFont();
+    void fontMenuEntryIsUnavailableWithoutADialog();
+    void realZoomKeystrokesChangeTheZoomByTenPercent();
+    void zoomResetShortcutWorksAfterTheMenuHasBeenOpenedAtOneHundred();
+    void ctrlWheelZoomsTheWindow();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
     void write(const QString& name, const QByteArray& bytes) const;
@@ -78,6 +92,8 @@ private:
     QStringList m_errors;
     QList<UnsavedChoice> m_choices; // consumed in order; Cancel once they run out
     QStringList m_promptedFor;
+    std::optional<QFont> m_fontAnswer; // what the scripted font dialog returns
+    QList<QFont> m_fontDialogOpenedWith;
 
     std::unique_ptr<QTemporaryDir> m_dir;
 };
@@ -93,6 +109,8 @@ void MainWindowTest::init()
     m_errors.clear();
     m_choices.clear();
     m_promptedFor.clear();
+    m_fontAnswer.reset();
+    m_fontDialogOpenedWith.clear();
 }
 
 FileDialogs MainWindowTest::scriptedDialogs()
@@ -112,6 +130,10 @@ FileDialogs MainWindowTest::scriptedDialogs()
     dialogs.confirmDiscard = [this](QWidget*, const QString& name) {
         m_promptedFor.append(name);
         return m_choices.isEmpty() ? UnsavedChoice::Cancel : m_choices.takeFirst();
+    };
+    dialogs.chooseFont = [this](QWidget*, const QFont& current) {
+        m_fontDialogOpenedWith.append(current);
+        return m_fontAnswer;
     };
     return dialogs;
 }
@@ -673,6 +695,190 @@ void MainWindowTest::droppingAFailingFileShowsAnError()
     QTRY_COMPARE(m_errors.size(), 1);
     QVERIFY2(m_errors.first().contains("odd.txt"), qPrintable(m_errors.first()));
     QCOMPARE(window.tabCount(), 1);
+}
+
+void MainWindowTest::viewMenuHasTheViewCommandsWithShortcuts()
+{
+    MainWindow window(scriptedDialogs());
+    const auto action = [&](const char* id) { return window.findChild<QAction*>(id); };
+
+    for (const char* id : {"view.wordWrap", "view.font", "view.zoomIn", "view.zoomOut",
+                           "view.zoomReset", "view.statusBar"}) {
+        QVERIFY2(action(id) != nullptr, id);
+    }
+
+    // Both shortcuts of Zoom In work; the first is the one shown in the menu.
+    QCOMPARE(action("view.zoomIn")->shortcuts(),
+             (QList<QKeySequence>{QKeySequence(QStringLiteral("Ctrl++")),
+                                  QKeySequence(QStringLiteral("Ctrl+="))}));
+    QCOMPARE(action("view.zoomOut")->shortcut(), QKeySequence(QStringLiteral("Ctrl+-")));
+    QCOMPARE(action("view.zoomReset")->shortcut(), QKeySequence(QStringLiteral("Ctrl+0")));
+}
+
+void MainWindowTest::viewMenuChecksFollowWordWrapAndStatusBar()
+{
+    MainWindow window(scriptedDialogs());
+    QMenu* viewMenu = window.findChildren<QMenu*>().at(2); // File, Edit, View
+    QCOMPARE(viewMenu->title(), QStringLiteral("&View"));
+    const auto action = [&](const char* id) { return window.findChild<QAction*>(id); };
+
+    QVERIFY(action("view.wordWrap")->isCheckable());
+    QVERIFY(action("view.statusBar")->isCheckable());
+    QVERIFY(!action("view.zoomIn")->isCheckable()); // only toggles get a check mark
+
+    emit viewMenu->aboutToShow();
+    QVERIFY(action("view.wordWrap")->isChecked());
+    QVERIFY(action("view.statusBar")->isChecked());
+
+    window.editor()->setLineWrapMode(QPlainTextEdit::NoWrap); // out-of-band, to prove it re-reads
+    window.commands().run("view.wordWrap");                   // toggles the shared setting
+    emit viewMenu->aboutToShow();
+    QVERIFY(!action("view.wordWrap")->isChecked());
+}
+
+void MainWindowTest::wordWrapMenuEntryTogglesEveryTab()
+{
+    MainWindow window(scriptedDialogs());
+    window.commands().run("file.new");
+    QCOMPARE(window.tabCount(), 2);
+
+    window.findChild<QAction*>("view.wordWrap")->trigger();
+
+    QVERIFY(!window.findChild<QAction*>("view.wordWrap")->isChecked());
+    QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::NoWrap);
+    window.commands().run("tab.previous");
+    QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::NoWrap);
+
+    window.findChild<QAction*>("view.wordWrap")->trigger();
+    QVERIFY(window.findChild<QAction*>("view.wordWrap")->isChecked());
+    QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::WidgetWidth);
+}
+
+void MainWindowTest::statusBarMenuEntryHidesAndShowsTheBar()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QVERIFY(bar != nullptr);
+    QVERIFY(bar->isVisible());
+
+    window.findChild<QAction*>("view.statusBar")->trigger();
+    QVERIFY(!bar->isVisible());
+    QVERIFY(!window.findChild<QAction*>("view.statusBar")->isChecked());
+
+    window.findChild<QAction*>("view.statusBar")->trigger();
+    QVERIFY(bar->isVisible());
+    QVERIFY(window.findChild<QAction*>("view.statusBar")->isChecked());
+}
+
+void MainWindowTest::statusBarFollowsTypingAndTabsInTheWindow()
+{
+    MainWindow window(scriptedDialogs());
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QVERIFY(bar != nullptr);
+    QCOMPARE(bar->position(), QStringLiteral("Ln 1, Col 1"));
+    QCOMPARE(bar->zoom(), QStringLiteral("100%"));
+
+    type(window, "line one\nline two");
+    QCOMPARE(bar->position(), QStringLiteral("Ln 2, Col 9"));
+    QCOMPARE(bar->characters(), scribe::editor::EditorStatusBar::charactersText(17));
+
+    window.commands().run("file.new");
+    QCOMPARE(bar->position(), QStringLiteral("Ln 1, Col 1")); // the new, empty tab
+    QCOMPARE(bar->characters(), scribe::editor::EditorStatusBar::charactersText(0));
+
+    window.commands().run("view.zoomIn");
+    QCOMPARE(bar->zoom(), QStringLiteral("110%"));
+}
+
+void MainWindowTest::fontMenuEntryAppliesTheChosenFont()
+{
+    MainWindow window(scriptedDialogs());
+    QFont chosen(QStringLiteral("Courier New"));
+    chosen.setPointSizeF(15.0);
+    m_fontAnswer = chosen;
+
+    window.findChild<QAction*>("view.font")->trigger();
+
+    QCOMPARE(m_fontDialogOpenedWith.size(), 1);
+    QCOMPARE(window.editor()->font().family(), QStringLiteral("Courier New"));
+    QCOMPARE(window.editor()->font().pointSizeF(), 15.0);
+
+    // The dialog is reopened on the font chosen last time.
+    m_fontAnswer = std::nullopt;
+    window.findChild<QAction*>("view.font")->trigger();
+    QCOMPARE(m_fontDialogOpenedWith.size(), 2);
+    QCOMPARE(m_fontDialogOpenedWith.last().family(), QStringLiteral("Courier New"));
+    QCOMPARE(window.editor()->font().pointSizeF(), 15.0); // cancelling changed nothing
+}
+
+void MainWindowTest::fontMenuEntryIsUnavailableWithoutADialog()
+{
+    FileDialogs dialogs = scriptedDialogs();
+    dialogs.chooseFont = nullptr;
+    MainWindow window(dialogs);
+    QMenu* viewMenu = window.findChildren<QMenu*>().at(2);
+
+    emit viewMenu->aboutToShow();
+    QVERIFY(!window.findChild<QAction*>("view.font")->isEnabled());
+}
+
+void MainWindowTest::realZoomKeystrokesChangeTheZoomByTenPercent()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QVERIFY(window.editor()->hasFocus());
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QPlainTextEdit* editor = window.editor();
+
+    // Exactly one step per press: the editor's own zoom handling must not add a second one.
+    QTest::keyClick(editor, Qt::Key_Plus, Qt::ControlModifier);
+    QCOMPARE(bar->zoom(), QStringLiteral("110%"));
+    QTest::keyClick(editor, Qt::Key_Equal, Qt::ControlModifier); // Ctrl+= for keyboards without +
+    QCOMPARE(bar->zoom(), QStringLiteral("120%"));
+    QTest::keyClick(editor, Qt::Key_Minus, Qt::ControlModifier);
+    QCOMPARE(bar->zoom(), QStringLiteral("110%"));
+    QTest::keyClick(editor, Qt::Key_0, Qt::ControlModifier);
+    QCOMPARE(bar->zoom(), QStringLiteral("100%"));
+
+    // The shortcuts must not type anything into the text.
+    QCOMPARE(editor->toPlainText(), QString());
+}
+
+void MainWindowTest::zoomResetShortcutWorksAfterTheMenuHasBeenOpenedAtOneHundred()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QMenu* viewMenu = window.findChildren<QMenu*>().at(2);
+
+    // At 100% "Restore Default Zoom" is unavailable, so the open menu shows it greyed out...
+    emit viewMenu->aboutToShow();
+    QVERIFY(!window.findChild<QAction*>("view.zoomReset")->isEnabled());
+    emit viewMenu->aboutToHide();
+
+    // ...but once the menu is closed that stale state must not block its keyboard shortcut.
+    QTest::keyClick(window.editor(), Qt::Key_Plus, Qt::ControlModifier);
+    QTest::keyClick(window.editor(), Qt::Key_Plus, Qt::ControlModifier);
+    QCOMPARE(bar->zoom(), QStringLiteral("120%"));
+    QTest::keyClick(window.editor(), Qt::Key_0, Qt::ControlModifier);
+    QCOMPARE(bar->zoom(), QStringLiteral("100%"));
+}
+
+void MainWindowTest::ctrlWheelZoomsTheWindow()
+{
+    MainWindow window(scriptedDialogs());
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QWidget* viewport = window.editor()->viewport();
+
+    QWheelEvent up(QPointF(5, 5), viewport->mapToGlobal(QPointF(5, 5)), QPoint(), QPoint(0, 120),
+                   Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent(viewport, &up);
+
+    QCOMPARE(bar->zoom(), QStringLiteral("110%"));
 }
 
 QTEST_MAIN(MainWindowTest)

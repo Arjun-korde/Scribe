@@ -98,6 +98,27 @@ Checks 1–8 passed by hand on 2026-11-06.
 | 14 | Keep Explorer visible while dropping a file that fails to open | Explorer is not frozen while the error dialog is open (the drop finishes first). |
 | 15 | Run Scribe as administrator and drag from a normal Explorer window | Windows blocks the drag. This is a Windows rule for all apps, not a bug. |
 
+## View menu and status bar
+
+Use a long text file (a few screens of long lines) so wrapping and zoom are easy to see.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Start the app | Text is in a fixed-width font (Cascadia Mono or Consolas), 11 pt, and long lines wrap at the window edge. The status bar shows `Ln 1, Col 1`, `0 chars`, `UTF-8`, `CRLF`, `100%`. |
+| 2 | View > Word Wrap (it has a check mark) | Wrapping turns off and a horizontal scroll bar appears; the check mark disappears. In every other tab too, and in tabs opened afterwards. |
+| 3 | View > Font..., pick another font and size | The standard Windows font dialog opens on the current font. The new font appears in all tabs. Cancel changes nothing. |
+| 4 | `Ctrl+Plus` (with Shift on a US keyboard), `Ctrl+=` and numpad `+` | Each press zooms in by exactly 10% (not 20%). The status bar shows `110%`, `120%`... |
+| 5 | `Ctrl+-` and numpad `-`; keep pressing | Zooms out by 10% per press. It stops at `10%`, where Zoom Out is greyed out in the menu. |
+| 6 | Keep zooming in | It stops at `500%`; Zoom In is greyed out in the menu. |
+| 7 | `Ctrl+0` | Back to `100%`. In the menu, Restore Default Zoom is greyed out at 100%. Open the View menu at 100%, close it, zoom in, then `Ctrl+0` again: it still works. |
+| 8 | Hold Ctrl and turn the mouse wheel; then try a laptop touchpad (two-finger scroll while holding Ctrl) | The mouse zooms 10% per notch, the touchpad zooms smoothly in 10% steps. Without Ctrl the text scrolls and the zoom does not change. |
+| 9 | Zoom in tab 1, switch to tab 2, open a new tab | Zoom is the same everywhere. |
+| 10 | Type text over several lines, move the caret with the arrow keys and mouse | `Ln` and `Col` follow the caret (both count from 1). `chars` follows the text; a line break counts as one character. |
+| 11 | Open a UTF-8 BOM file with LF line endings, then a UTF-16 file | The bar shows `UTF-8 with BOM` / `LF`, then `UTF-16 LE` / `CRLF` (as detected). It changes when you switch tabs. |
+| 12 | View > Status Bar (it has a check mark) | The bar hides and the check mark goes; choose it again to show it. |
+| 13 | Set Windows scaling to 150% and to 200% | The status bar text stays readable and is not clipped. |
+| 14 | Set Windows text size to Large (Accessibility) | The segments still fit; nothing overlaps. |
+
 ## Error handling
 
 | # | Steps | Expected |

@@ -28,6 +28,12 @@ bool CommandRegistry::isEnabled(const QString& id) const
     return !command->enabledWhen || command->enabledWhen();
 }
 
+bool CommandRegistry::isChecked(const QString& id) const
+{
+    const Command* command = find(id);
+    return command != nullptr && command->checkedWhen && command->checkedWhen();
+}
+
 bool CommandRegistry::run(const QString& id) const
 {
     if (!isEnabled(id)) {

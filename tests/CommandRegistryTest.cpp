@@ -171,3 +171,38 @@ TEST(CommandRegistry, UnknownIdIsNotEnabled)
     const CommandRegistry registry;
     EXPECT_FALSE(registry.isEnabled(QStringLiteral("nope")));
 }
+
+TEST(CommandRegistry, ToggleCommandReportsItsLiveCheckState)
+{
+    CommandRegistry registry;
+    bool on = false;
+    Command command = makeCommand(QStringLiteral("x"), [&] { on = !on; });
+    command.checkedWhen = [&] { return on; };
+    ASSERT_TRUE(registry.registerCommand(command));
+
+    EXPECT_FALSE(registry.isChecked(QStringLiteral("x")));
+    registry.run(QStringLiteral("x"));
+    EXPECT_TRUE(registry.isChecked(QStringLiteral("x"))); // read again each time
+    registry.run(QStringLiteral("x"));
+    EXPECT_FALSE(registry.isChecked(QStringLiteral("x")));
+}
+
+TEST(CommandRegistry, OrdinaryAndUnknownCommandsAreNeverChecked)
+{
+    CommandRegistry registry;
+    registry.registerCommand(makeCommand(QStringLiteral("plain")));
+
+    EXPECT_FALSE(registry.isChecked(QStringLiteral("plain")));
+    EXPECT_FALSE(registry.isChecked(QStringLiteral("nope")));
+}
+
+TEST(CommandRegistry, KeepsAnAlternateShortcut)
+{
+    CommandRegistry registry;
+    Command command = makeCommand(QStringLiteral("zoomIn"));
+    command.shortcut = QStringLiteral("Ctrl++");
+    command.alternateShortcut = QStringLiteral("Ctrl+=");
+    ASSERT_TRUE(registry.registerCommand(command));
+
+    EXPECT_EQ(registry.find(QStringLiteral("zoomIn"))->alternateShortcut, QStringLiteral("Ctrl+="));
+}

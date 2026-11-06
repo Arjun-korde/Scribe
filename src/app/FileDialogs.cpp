@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QFileDialog>
+#include <QFontDialog>
 #include <QMessageBox>
 #include <QPushButton>
 
@@ -56,5 +57,10 @@ FileDialogs defaultFileDialogs()
         QMessageBox::warning(parent, title, message);
     };
     dialogs.confirmDiscard = askAboutUnsavedChanges;
+    dialogs.chooseFont = [](QWidget* parent, const QFont& current) -> std::optional<QFont> {
+        bool accepted = false;
+        const QFont font = QFontDialog::getFont(&accepted, current, parent, tr("Font"));
+        return accepted ? std::optional<QFont>(font) : std::nullopt;
+    };
     return dialogs;
 }
