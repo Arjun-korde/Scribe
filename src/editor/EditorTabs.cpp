@@ -78,48 +78,60 @@ core::IoResult EditorTabs::openFile(const QString& path)
     return result;
 }
 
-void EditorTabs::closeTab(int index)
+void EditorTabs::setCloseGuard(CloseGuard guard)
+{
+    m_closeGuard = std::move(guard);
+}
+
+bool EditorTabs::closeTab(int index)
 {
     if (index < 0 || index >= count()) {
-        return;
+        return false;
     }
 
     QWidget* page = widget(index);
+    if (!confirmClose(page)) {
+        return false;
+    }
     if (count() == 1) {
         addEditor(); // before removing, so there is never a moment without an editor
     }
     removeAndDelete(page);
+    return true;
 }
 
-void EditorTabs::closeOtherTabs(int index)
+bool EditorTabs::closeOtherTabs(int index)
 {
     if (index < 0 || index >= count()) {
-        return;
+        return false;
     }
 
     QWidget* keep = widget(index);
-    QList<QWidget*> others;
-    for (int i = 0; i < count(); ++i) {
-        if (widget(i) != keep) {
-            others.append(widget(i));
+    for (QWidget* page : pages()) {
+        if (page == keep) {
+            continue;
         }
+        if (!confirmClose(page)) {
+            return false;
+        }
+        removeAndDelete(page);
     }
     setCurrentWidget(keep);
-    for (QWidget* page : others) {
-        removeAndDelete(page);
-    }
+    return true;
 }
 
-void EditorTabs::closeAllTabs()
+bool EditorTabs::closeAllTabs()
 {
-    QList<QWidget*> all;
-    for (int i = 0; i < count(); ++i) {
-        all.append(widget(i));
-    }
-    addEditor();
-    for (QWidget* page : all) {
+    for (QWidget* page : pages()) {
+        if (!confirmClose(page)) {
+            return false;
+        }
+        if (count() == 1) {
+            addEditor(); // the last tab is replaced by a fresh one, never left empty
+        }
         removeAndDelete(page);
     }
+    return true;
 }
 
 void EditorTabs::nextTab()
@@ -190,6 +202,26 @@ void EditorTabs::removeAndDelete(QWidget* page)
 {
     removeTab(indexOf(page));
     page->deleteLater();
+}
+
+QList<QWidget*> EditorTabs::pages() const
+{
+    QList<QWidget*> result;
+    for (int i = 0; i < count(); ++i) {
+        result.append(widget(i));
+    }
+    return result;
+}
+
+bool EditorTabs::confirmClose(QWidget* page)
+{
+    auto* editor = qobject_cast<EditorWidget*>(page);
+    if (editor == nullptr || !editor->isModified() || !m_closeGuard) {
+        return true;
+    }
+
+    setCurrentWidget(page);
+    return m_closeGuard(*editor);
 }
 
 bool EditorTabs::isUntouchedUntitled(const EditorWidget& editor)

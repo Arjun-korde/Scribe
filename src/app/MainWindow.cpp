@@ -1,54 +1,18 @@
 #include "MainWindow.h"
 
+#include "DocumentController.h"
 #include "EditorTabs.h"
 #include "EditorWidget.h"
+#include "FileCommands.h"
 #include "TabCommands.h"
 
 #include <QAction>
-#include <QFileDialog>
-#include <QFileInfo>
+#include <QCloseEvent>
 #include <QKeySequence>
-#include <QLatin1String>
 #include <QMenu>
 #include <QMenuBar>
-#include <QMessageBox>
 
-namespace
-{
-
-using scribe::core::DocumentError;
 using scribe::editor::TabCommands;
-
-// Every command id in one place, so a typo is a compile error instead of a dead menu entry.
-constexpr QLatin1String kFileNew("file.new");
-constexpr QLatin1String kFileOpen("file.open");
-constexpr QLatin1String kFileSave("file.save");
-constexpr QLatin1String kFileSaveAs("file.saveAs");
-constexpr QLatin1String kFileExit("file.exit");
-
-QString fileFilter()
-{
-    return MainWindow::tr("Text Documents (*.txt);;All Files (*)");
-}
-
-} // namespace
-
-FileDialogs defaultFileDialogs()
-{
-    FileDialogs dialogs;
-    dialogs.chooseOpenPath = [](QWidget* parent) {
-        return QFileDialog::getOpenFileName(parent, MainWindow::tr("Open"), QString(),
-                                            fileFilter());
-    };
-    dialogs.chooseSavePath = [](QWidget* parent, const QString& suggestedPath) {
-        return QFileDialog::getSaveFileName(parent, MainWindow::tr("Save As"), suggestedPath,
-                                            fileFilter());
-    };
-    dialogs.showError = [](QWidget* parent, const QString& title, const QString& message) {
-        QMessageBox::warning(parent, title, message);
-    };
-    return dialogs;
-}
 
 MainWindow::MainWindow(QWidget* parent)
     : MainWindow(defaultFileDialogs(), parent)
@@ -56,8 +20,8 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     : QMainWindow(parent)
-    , m_dialogs(std::move(dialogs))
     , m_tabs(new scribe::editor::EditorTabs(this))
+    , m_controller(std::make_unique<DocumentController>(*m_tabs, std::move(dialogs), this))
 {
     resize(900, 600);
     setCentralWidget(m_tabs);
@@ -70,6 +34,8 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     updateTitle();
 }
 
+MainWindow::~MainWindow() = default;
+
 scribe::editor::EditorWidget* MainWindow::editor() const
 {
     return m_tabs->currentEditor();
@@ -80,39 +46,35 @@ int MainWindow::tabCount() const
     return m_tabs->count();
 }
 
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    // Asks about every modified tab; one Cancel keeps the window open.
+    if (m_tabs->closeAllTabs()) {
+        event->accept();
+    } else {
+        event->ignore();
+    }
+}
+
 void MainWindow::registerCommands()
 {
-    using scribe::core::Command;
-
-    // '&' marks the menu mnemonic (Alt+letter). Exit has no shortcut: Alt+F4 is handled by Windows.
-    m_commands.registerCommand(
-        Command{kFileNew, tr("&New"), QStringLiteral("Ctrl+N"), [this] { newFile(); }, true});
-    m_commands.registerCommand(
-        Command{kFileOpen, tr("&Open..."), QStringLiteral("Ctrl+O"), [this] { openFile(); }, true});
-    m_commands.registerCommand(
-        Command{kFileSave, tr("&Save"), QStringLiteral("Ctrl+S"), [this] { saveFile(); }, true});
-    m_commands.registerCommand(Command{kFileSaveAs, tr("Save &As..."),
-                                       QStringLiteral("Ctrl+Shift+S"), [this] { saveFileAs(); },
-                                       true});
-    m_commands.registerCommand(
-        Command{kFileExit, tr("E&xit"), QString(), [this] { close(); }, true});
-
+    FileCommands::registerIn(m_commands, *m_controller, *this);
     TabCommands::registerIn(m_commands, *m_tabs);
 }
 
 void MainWindow::buildMenus()
 {
     QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
-    addCommandAction(fileMenu, kFileNew);
-    addCommandAction(fileMenu, kFileOpen);
-    addCommandAction(fileMenu, kFileSave);
-    addCommandAction(fileMenu, kFileSaveAs);
+    addCommandAction(fileMenu, FileCommands::kNew);
+    addCommandAction(fileMenu, FileCommands::kOpen);
+    addCommandAction(fileMenu, FileCommands::kSave);
+    addCommandAction(fileMenu, FileCommands::kSaveAs);
     fileMenu->addSeparator();
     addCommandAction(fileMenu, TabCommands::kClose);
     addCommandAction(fileMenu, TabCommands::kCloseOthers);
     addCommandAction(fileMenu, TabCommands::kCloseAll);
     fileMenu->addSeparator();
-    addCommandAction(fileMenu, kFileExit);
+    addCommandAction(fileMenu, FileCommands::kExit);
 
     QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
     addCommandAction(viewMenu, TabCommands::kNext);
@@ -142,82 +104,4 @@ void MainWindow::updateTitle()
 
     setWindowTitle(QStringLiteral("%1[*] - %2").arg(name, tr("Scribe")));
     setWindowModified(editor()->isModified());
-}
-
-void MainWindow::newFile()
-{
-    m_tabs->addEditor();
-}
-
-void MainWindow::openFile()
-{
-    const QString path = m_dialogs.chooseOpenPath(this);
-    if (path.isEmpty()) {
-        return;
-    }
-
-    const scribe::core::IoResult result = m_tabs->openFile(path);
-    if (!result.ok()) {
-        showIoError(result, path);
-    }
-}
-
-void MainWindow::saveFile()
-{
-    if (editor()->fileDocument().filePath().isEmpty()) {
-        saveFileAs();
-        return;
-    }
-
-    const scribe::core::IoResult result = editor()->saveFile();
-    if (!result.ok()) {
-        showIoError(result, editor()->fileDocument().filePath());
-    }
-}
-
-void MainWindow::saveFileAs()
-{
-    const QString path = m_dialogs.chooseSavePath(this, editor()->fileDocument().filePath());
-    if (path.isEmpty()) {
-        return;
-    }
-
-    const scribe::core::IoResult result = editor()->saveFileAs(path);
-    if (!result.ok()) {
-        showIoError(result, path);
-    }
-}
-
-void MainWindow::showIoError(const scribe::core::IoResult& result, const QString& path)
-{
-    const QString name = QFileInfo(path).fileName();
-
-    QString message;
-    switch (result.error) {
-        case DocumentError::None:
-            return;
-        case DocumentError::CannotRead:
-            message = tr("Could not open \"%1\".").arg(name);
-            break;
-        case DocumentError::InvalidEncoding:
-            message =
-                tr("\"%1\" was not opened because its text could not be read without changing "
-                   "it.")
-                    .arg(name);
-            break;
-        case DocumentError::CannotEncode:
-            message =
-                tr("\"%1\" was not saved because the text contains characters that the "
-                   "%2 encoding cannot store.")
-                    .arg(name, scribe::core::encodingName(editor()->fileDocument().encoding()));
-            break;
-        case DocumentError::CannotWrite:
-            message = tr("Could not save \"%1\". The file on disk was not changed.").arg(name);
-            break;
-    }
-
-    if (!result.detail.isEmpty()) {
-        message += QStringLiteral("\n\n") + result.detail;
-    }
-    m_dialogs.showError(this, tr("Scribe"), message);
 }

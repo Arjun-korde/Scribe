@@ -43,6 +43,16 @@ private slots:
     void middleClickClosesATab();
     void closeRequestFromTheTabButtonClosesATab();
 
+    void guardIsNotAskedAboutCleanTabs();
+    void guardRefusalKeepsTheTab();
+    void guardApprovalClosesTheTab();
+    void guardSeesTheTabAlreadyActive();
+    void closeOthersDoesNotAskAboutTheKeptTab();
+    void closeAllStopsAtTheFirstRefusal();
+    void closeAllAsksLeftToRight();
+    void tabButtonAndMiddleClickUseTheGuard();
+    void invalidIndexReturnsFalse();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
     QString write(const QString& name, const QByteArray& bytes) const;
@@ -314,6 +324,173 @@ void EditorTabsTest::closeRequestFromTheTabButtonClosesATab()
     tabs.addEditor();
     emit tabs.tabCloseRequested(0);
     QCOMPARE(tabs.count(), 1);
+}
+
+namespace
+{
+
+void edit(EditorWidget* editor)
+{
+    editor->insertPlainText(QStringLiteral("x"));
+}
+
+} // namespace
+
+void EditorTabsTest::guardIsNotAskedAboutCleanTabs()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    int asked = 0;
+    tabs.setCloseGuard([&asked](EditorWidget&) {
+        ++asked;
+        return false;
+    });
+
+    QVERIFY(tabs.closeTab(0));
+    QVERIFY(tabs.closeAllTabs());
+    QCOMPARE(asked, 0);
+}
+
+void EditorTabsTest::guardRefusalKeepsTheTab()
+{
+    EditorTabs tabs;
+    edit(tabs.currentEditor());
+    tabs.setCloseGuard([](EditorWidget&) { return false; });
+
+    QVERIFY(!tabs.closeTab(0));
+    QCOMPARE(tabs.count(), 1);
+    QVERIFY(tabs.currentEditor()->isModified());
+}
+
+void EditorTabsTest::guardApprovalClosesTheTab()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    edit(tabs.editorAt(0));
+    tabs.setCloseGuard([](EditorWidget&) { return true; });
+
+    QVERIFY(tabs.closeTab(0));
+    QCOMPARE(tabs.count(), 1);
+}
+
+void EditorTabsTest::guardSeesTheTabAlreadyActive()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    tabs.addEditor();
+    edit(tabs.editorAt(0));
+    tabs.setCurrentIndex(2);
+
+    EditorWidget* seen = nullptr;
+    EditorWidget* current = nullptr;
+    tabs.setCloseGuard([&](EditorWidget& editor) {
+        seen = &editor;
+        current = tabs.currentEditor();
+        return true;
+    });
+
+    QVERIFY(tabs.closeTab(0)); // closing a background tab must show it to the user first
+    QVERIFY(seen != nullptr);
+    QCOMPARE(current, seen);
+}
+
+void EditorTabsTest::closeOthersDoesNotAskAboutTheKeptTab()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    tabs.addEditor();
+    for (int i = 0; i < 3; ++i) {
+        edit(tabs.editorAt(i));
+    }
+    EditorWidget* keep = tabs.editorAt(1);
+
+    QList<EditorWidget*> asked;
+    tabs.setCloseGuard([&asked](EditorWidget& editor) {
+        asked.append(&editor);
+        return true;
+    });
+
+    QVERIFY(tabs.closeOtherTabs(1));
+    QCOMPARE(asked.size(), 2);
+    QVERIFY(!asked.contains(keep));
+    QCOMPARE(tabs.count(), 1);
+    QCOMPARE(tabs.currentEditor(), keep);
+}
+
+void EditorTabsTest::closeAllStopsAtTheFirstRefusal()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    tabs.addEditor();
+    for (int i = 0; i < 3; ++i) {
+        edit(tabs.editorAt(i));
+    }
+    EditorWidget* second = tabs.editorAt(1);
+    EditorWidget* third = tabs.editorAt(2);
+
+    int asked = 0;
+    tabs.setCloseGuard([&asked](EditorWidget&) { return ++asked == 1; }); // approve, then refuse
+
+    QVERIFY(!tabs.closeAllTabs());
+    QCOMPARE(asked, 2);        // never asked about the third
+    QCOMPARE(tabs.count(), 2); // the first was closed before the refusal
+    QCOMPARE(tabs.editorAt(0), second);
+    QCOMPARE(tabs.editorAt(1), third);
+    QCOMPARE(tabs.currentEditor(), second); // the refused tab is the one the user sees
+}
+
+void EditorTabsTest::closeAllAsksLeftToRight()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    tabs.addEditor();
+    for (int i = 0; i < 3; ++i) {
+        edit(tabs.editorAt(i));
+    }
+    const QList<EditorWidget*> expected = {tabs.editorAt(0), tabs.editorAt(1), tabs.editorAt(2)};
+
+    QList<EditorWidget*> order;
+    tabs.setCloseGuard([&order](EditorWidget& editor) {
+        order.append(&editor);
+        return true;
+    });
+
+    QVERIFY(tabs.closeAllTabs());
+    QCOMPARE(order, expected);
+    QCOMPARE(tabs.count(), 1);
+    QVERIFY(!tabs.currentEditor()->isModified()); // the fresh Untitled tab
+}
+
+void EditorTabsTest::tabButtonAndMiddleClickUseTheGuard()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+    edit(tabs.editorAt(0));
+    edit(tabs.editorAt(1));
+    tabs.resize(600, 300);
+    tabs.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&tabs));
+
+    int asked = 0;
+    tabs.setCloseGuard([&asked](EditorWidget&) {
+        ++asked;
+        return false;
+    });
+
+    emit tabs.tabCloseRequested(0);
+    QTabBar* bar = tabs.tabBar();
+    QTest::mouseClick(bar, Qt::MiddleButton, Qt::NoModifier, bar->tabRect(1).center());
+
+    QCOMPARE(asked, 2);
+    QCOMPARE(tabs.count(), 2); // both requests were refused
+}
+
+void EditorTabsTest::invalidIndexReturnsFalse()
+{
+    EditorTabs tabs;
+    QVERIFY(!tabs.closeTab(-1));
+    QVERIFY(!tabs.closeTab(1));
+    QVERIFY(!tabs.closeOtherTabs(3));
 }
 
 QTEST_MAIN(EditorTabsTest)

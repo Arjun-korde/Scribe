@@ -38,6 +38,16 @@ private slots:
     void closeCommandsManageTabs();
     void closingTheLastTabKeepsTheWindowUsable();
     void realKeystrokesSwitchTabsWhileTheEditorHasFocus();
+
+    void closingTheWindowAsksAboutUnsavedChanges();
+    void cancelKeepsTheWindowOpen();
+    void discardClosesTheWindowWithoutSaving();
+    void saveWritesTheFileThenClosesTheWindow();
+    void exitCommandAsksToo();
+    void cleanWindowClosesWithoutAsking();
+    void cancelOnALaterTabKeepsTheWindowAndEarlierClosures();
+    void newAndOpenDoNotAsk();
+    void closeTabCommandAsksAboutThatTab();
     void exitClosesTheWindow();
 
 private:
@@ -53,6 +63,8 @@ private:
     int m_openAsked = 0;
     int m_saveAsked = 0;
     QStringList m_errors;
+    QList<UnsavedChoice> m_choices; // consumed in order; Cancel once they run out
+    QStringList m_promptedFor;
 
     std::unique_ptr<QTemporaryDir> m_dir;
 };
@@ -66,6 +78,8 @@ void MainWindowTest::init()
     m_openAsked = 0;
     m_saveAsked = 0;
     m_errors.clear();
+    m_choices.clear();
+    m_promptedFor.clear();
 }
 
 FileDialogs MainWindowTest::scriptedDialogs()
@@ -81,6 +95,10 @@ FileDialogs MainWindowTest::scriptedDialogs()
     };
     dialogs.showError = [this](QWidget*, const QString&, const QString& message) {
         m_errors.append(message);
+    };
+    dialogs.confirmDiscard = [this](QWidget*, const QString& name) {
+        m_promptedFor.append(name);
+        return m_choices.isEmpty() ? UnsavedChoice::Cancel : m_choices.takeFirst();
     };
     return dialogs;
 }
@@ -388,6 +406,138 @@ void MainWindowTest::realKeystrokesSwitchTabsWhileTheEditorHasFocus()
 
     QTest::keyClick(window.editor(), Qt::Key_Backtab, Qt::ControlModifier | Qt::ShiftModifier);
     QCOMPARE(window.editor(), before);
+}
+
+void MainWindowTest::closingTheWindowAsksAboutUnsavedChanges()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    type(window, "work in progress");
+
+    m_choices = {UnsavedChoice::Cancel};
+    window.close();
+
+    QCOMPARE(m_promptedFor, (QStringList{"Untitled"}));
+}
+
+void MainWindowTest::cancelKeepsTheWindowOpen()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    type(window, "work in progress");
+
+    m_choices = {UnsavedChoice::Cancel};
+    QVERIFY(!window.close());
+
+    QVERIFY(window.isVisible());
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("work in progress"));
+    QVERIFY(window.isWindowModified());
+}
+
+void MainWindowTest::discardClosesTheWindowWithoutSaving()
+{
+    write("a.txt", "original");
+    m_openAnswer = path("a.txt");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    window.commands().run("file.open");
+    type(window, " changed");
+
+    m_choices = {UnsavedChoice::Discard};
+    QVERIFY(window.close());
+
+    QVERIFY(!window.isVisible());
+    QCOMPARE(read("a.txt"), QByteArray("original"));
+}
+
+void MainWindowTest::saveWritesTheFileThenClosesTheWindow()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    type(window, "keep this");
+
+    m_choices = {UnsavedChoice::Save};
+    m_saveAnswer = path("kept.txt");
+    QVERIFY(window.close());
+
+    QCOMPARE(read("kept.txt"), QByteArray("keep this"));
+    QVERIFY(!window.isVisible());
+}
+
+void MainWindowTest::exitCommandAsksToo()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    type(window, "x");
+
+    m_choices = {UnsavedChoice::Cancel};
+    window.commands().run("file.exit");
+
+    QVERIFY(window.isVisible());
+    QCOMPARE(m_promptedFor.size(), 1);
+}
+
+void MainWindowTest::cleanWindowClosesWithoutAsking()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    window.commands().run("file.new");
+
+    QVERIFY(window.close());
+    QVERIFY(m_promptedFor.isEmpty());
+}
+
+void MainWindowTest::cancelOnALaterTabKeepsTheWindowAndEarlierClosures()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    type(window, "first");
+    window.commands().run("file.new");
+    type(window, "second");
+    window.commands().run("file.new");
+    type(window, "third");
+    QCOMPARE(window.tabCount(), 3);
+
+    m_choices = {UnsavedChoice::Discard, UnsavedChoice::Cancel};
+    QVERIFY(!window.close());
+
+    QVERIFY(window.isVisible());
+    QCOMPARE(window.tabCount(), 2);
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("second")); // the refused tab
+}
+
+void MainWindowTest::newAndOpenDoNotAsk()
+{
+    write("a.txt", "abc");
+    m_openAnswer = path("a.txt");
+    MainWindow window(scriptedDialogs());
+    type(window, "unsaved");
+
+    window.commands().run("file.new");
+    window.commands().run("file.open");
+
+    QVERIFY(m_promptedFor.isEmpty());
+    // New added an empty tab and Open reused it, so the unsaved tab was never touched.
+    QCOMPARE(window.tabCount(), 2);
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("abc"));
+    window.commands().run("tab.previous");
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("unsaved"));
+}
+
+void MainWindowTest::closeTabCommandAsksAboutThatTab()
+{
+    MainWindow window(scriptedDialogs());
+    window.commands().run("file.new");
+    type(window, "unsaved");
+
+    m_choices = {UnsavedChoice::Cancel};
+    window.commands().run("tab.close");
+    QCOMPARE(window.tabCount(), 2);
+
+    m_choices = {UnsavedChoice::Discard};
+    window.commands().run("tab.close");
+    QCOMPARE(window.tabCount(), 1);
+    QCOMPARE(m_promptedFor.size(), 2);
 }
 
 QTEST_MAIN(MainWindowTest)
