@@ -2,6 +2,12 @@
 add_library(scribe_ui STATIC
     MainWindow.h
     MainWindow.cpp
+    FileDialogs.h
+    FileDialogs.cpp
+    DocumentController.h
+    DocumentController.cpp
+    FileCommands.h
+    FileCommands.cpp
 )
 
 target_include_directories(scribe_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

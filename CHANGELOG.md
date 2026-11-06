@@ -11,6 +11,9 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   a tab, middle-click or the tab button also close it, and Close Other Tabs / Close All Tabs are in
   the File menu. `Ctrl+Tab` and `Ctrl+Shift+Tab` switch tabs. A tab shows `*` while it has unsaved
   changes, and the window title follows the active tab.
+- Unsaved-changes prompt (Save / Don't Save / Cancel) when closing a modified tab, Close Other Tabs,
+  Close All Tabs, or the window (Exit, the X button, `Alt+F4`). Cancel, a cancelled Save As or a failed
+  save keeps everything open, so nothing is lost. `Ctrl+N` and `Ctrl+O` never ask.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.
@@ -21,8 +24,6 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   the file's encoding cannot store.
 
 ### Known limitations
-- Closing a tab, Close Other Tabs, Close All Tabs and closing the window do not yet ask about
-  unsaved changes.
 - Every unsaved tab is called "Untitled" (no numbering), and Save As to a file that is already open
   in another tab leaves two tabs for the same file.
 - A file with mixed line endings is saved using its most common line ending.

@@ -37,6 +37,25 @@ Create the test files in Notepad (Save As, choose the encoding) or with PowerShe
 | 10 | Open 15 or more files | The tab bar stays usable (scroll arrows). The full overflow design comes later. |
 | 11 | Drag a tab to reorder | The tab moves. Save and the title still act on the active tab. |
 
+## Unsaved changes
+
+Use a saved file `a.txt` and an untitled tab with some typed text. A tab is "modified" when its label ends with ` *`.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Type in a tab, then close it with `Ctrl+W` | A dialog asks `Do you want to save changes to "<name>"?` with **Save** (the default button), **Don't Save** and **Cancel**. The tab being asked about is active. |
+| 2 | In that dialog press `Esc`, then click the window's close button | Both act as **Cancel**: the tab stays, text and `*` unchanged. |
+| 3 | Choose **Don't Save** | The tab closes. The file on disk is unchanged. |
+| 4 | Choose **Save** for a saved file | The file is written, then the tab closes. |
+| 5 | Choose **Save** for an untitled tab | A Save As dialog opens. Cancel it: the tab stays open and modified. Pick a name: the file is saved and the tab closes. |
+| 6 | Choose **Save** for a file that cannot be written (for example a read-only file) | An error explains the save failed. The tab stays open and modified. |
+| 7 | Click a tab's close button, and middle-click a modified tab | Both ask, exactly like `Ctrl+W`. A tab without changes closes without asking. |
+| 8 | With three modified tabs: File > Close Other Tabs | Asks once for each of the other two tabs, never for the active one. |
+| 9 | With three modified tabs: File > Close All Tabs, answer **Don't Save**, then **Cancel** | Asks left to right. The first tab is closed; after Cancel the remaining tabs stay and the refused tab is the active one. |
+| 10 | With modified tabs: File > Exit, then the window's X button, then `Alt+F4` | Each asks for every modified tab. **Cancel** keeps the window open. Answering for all tabs closes the window. |
+| 11 | `Ctrl+N` and `Ctrl+O` while the current tab is modified | No question: they add a tab and never touch the modified one. |
+| 12 | Close the window when every tab is unmodified | It closes at once, without a dialog. |
+
 ## Error handling
 
 | # | Steps | Expected |
@@ -46,5 +65,4 @@ Create the test files in Notepad (Save As, choose the encoding) or with PowerShe
 
 ## Known gaps (do not report)
 
-- Closing a tab, Close Other Tabs, Close All Tabs and closing the window discard unsaved edits without asking. This is fixed by the unsaved-changes prompt.
 - All new tabs are named "Untitled", and Save As onto a file that is open in another tab gives two tabs for one file.
