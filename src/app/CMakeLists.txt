@@ -8,6 +8,8 @@ add_library(scribe_ui STATIC
     DocumentController.cpp
     FileCommands.h
     FileCommands.cpp
+    GoToLineDialog.h
+    GoToLineDialog.cpp
     EncodingCommands.h
     EncodingCommands.cpp
 )

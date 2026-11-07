@@ -18,12 +18,13 @@ EditorStatusBar::EditorStatusBar(EditorTabs& tabs, QWidget* parent)
     // The size grip is a Windows 7 era corner widget; the segments are what matters here.
     setSizeGripEnabled(false);
 
-    m_position = addSegment(tr("Cursor position"));
+    m_position = addButtonSegment(tr("Cursor position"), tr("Go to line"));
     m_characters = addSegment(tr("Character count"));
     m_encoding = addButtonSegment(tr("Encoding"), tr("Change the encoding"));
     m_lineEnding = addButtonSegment(tr("Line ending"), tr("Change the line ending"));
     m_zoom = addSegment(tr("Zoom"));
 
+    connect(m_position, &QToolButton::clicked, this, [this] { emit positionClicked(m_position); });
     connect(m_encoding, &QToolButton::clicked, this, [this] { emit encodingClicked(m_encoding); });
     connect(m_lineEnding, &QToolButton::clicked, this,
             [this] { emit lineEndingClicked(m_lineEnding); });

@@ -44,6 +44,18 @@ public:
     void setEncoding(const core::EncodingInfo& encoding);
     void setLineEnding(core::LineEnding lineEnding);
 
+    /// Number of lines: one more than the number of line breaks, so an empty document has one.
+    /// A long line that wraps on screen is still one line.
+    [[nodiscard]] int lineCount() const { return document()->blockCount(); }
+
+    /// The line the caret is on, counting from 1.
+    [[nodiscard]] int currentLine() const { return textCursor().blockNumber() + 1; }
+
+    /// Puts the caret at the start of `line` (counting from 1) and removes any selection. A line
+    /// that is already on screen does not scroll the view; a far one is centered. Returns false,
+    /// changing nothing, if `line` is not between 1 and lineCount().
+    bool goToLine(int line);
+
 signals:
     /// Emitted when the path, the modified state, the encoding or the line ending changes.
     void stateChanged();

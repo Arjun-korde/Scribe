@@ -37,6 +37,12 @@ struct FileDialogs
     /// Asks for a font, starting from `current`. std::nullopt means the user cancelled. A missing
     /// function makes the Font command unavailable.
     std::function<std::optional<QFont>(QWidget* parent, const QFont& current)> chooseFont;
+
+    /// Asks which line to go to: the line the caret is on and the number of lines in the document
+    /// are given. std::nullopt means the user cancelled. A missing function makes the Go To Line
+    /// command unavailable.
+    std::function<std::optional<int>(QWidget* parent, int currentLine, int lineCount)>
+        askLineNumber;
 };
 
 FileDialogs defaultFileDialogs();

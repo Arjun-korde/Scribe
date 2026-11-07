@@ -20,6 +20,11 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - View menu: Word Wrap, Font..., Zoom In / Out / Restore Default Zoom (`Ctrl++` or `Ctrl+=`, `Ctrl+-`,
   `Ctrl+0`, or Ctrl+mouse wheel), and a Status Bar toggle. Wrapping, font and zoom (10% to 500%) apply
   to every tab, including new ones. The editor starts in Cascadia Mono or Consolas at 11 pt.
+- Go To Line (`Ctrl+G`, in the new Search menu, or click the line/column in the status bar): a small
+  dialog that opens on the current line. Only a number from 1 to the number of lines is accepted;
+  anything else (for example 310 in a 300-line document) disables Go and shows "Enter a number from
+  1 to 300", so Enter does nothing until the number is valid. The caret goes to the start of the
+  line, and the view only scrolls if that line was off screen.
 - Encoding menu: choose the encoding the document is saved in (UTF-8, UTF-8 with BOM, UTF-16 LE/BE
   with or without BOM, ANSI) and its line ending (Windows CRLF, Unix LF, Old Mac CR). The current
   choice is checked. Clicking the encoding or line ending in the status bar opens the same choices.
@@ -41,10 +46,12 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   the file's encoding cannot store.
 
 ### Known limitations
+- An invalid line number in Go To Line is shown by text only for now; the red field border from the
+  design comes with the theme.
 - A file opened with the wrong encoding cannot be fixed from the Encoding menu: the menu changes how
   the file is saved, not how it was read. "Reopen with encoding" is planned for a later version.
 - Word wrap, font and zoom are not remembered between runs yet (that comes with settings), and the
-  zoom, position and character count in the status bar are not clickable yet. The character count
+  zoom and character count in the status bar are not clickable yet. The character count
   counts each line break as one.
 - Dropping files on the menu bar does not open them (only the tab strip and the editors do).
 - Binary files (an `.exe`, an image) are not recognised: they open as garbage, or are refused if their
