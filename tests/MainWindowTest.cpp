@@ -12,6 +12,7 @@
 #include <QMenuBar>
 #include <QMimeData>
 #include <QTemporaryDir>
+#include <QToolButton>
 #include <QUrl>
 #include <QWheelEvent>
 #include <QtTest>
@@ -75,6 +76,16 @@ private slots:
     void realZoomKeystrokesChangeTheZoomByTenPercent();
     void zoomResetShortcutWorksAfterTheMenuHasBeenOpenedAtOneHundred();
     void ctrlWheelZoomsTheWindow();
+
+    void encodingMenuHasEveryEncodingAndLineEnding();
+    void encodingMenuChecksFollowTheActiveDocument();
+    void choosingFromTheEncodingMenuUpdatesTheStatusBarAndTab();
+    void savingAfterChoosingFromTheMenuWritesTheNewFormat();
+    void refusedAnsiShowsAnErrorInTheWindow();
+    void clickingTheEncodingSegmentOpensTheEncodingChoices();
+    void clickingTheLineEndingSegmentOpensTheLineEndingChoices();
+    void choosingFromTheStatusBarPopupChangesTheDocument();
+    void statusBarPopupsReuseTheMenuActions();
 
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
@@ -169,10 +180,11 @@ void MainWindowTest::fileMenuIsBuiltFromRegisteredCommands()
     MainWindow window(scriptedDialogs());
 
     const QList<QAction*> menus = window.menuBar()->actions();
-    QCOMPARE(menus.size(), 3);
+    QCOMPARE(menus.size(), 4);
     QCOMPARE(menus.at(0)->text(), QStringLiteral("&File"));
     QCOMPARE(menus.at(1)->text(), QStringLiteral("&Edit"));
     QCOMPARE(menus.at(2)->text(), QStringLiteral("&View"));
+    QCOMPARE(menus.at(3)->text(), QStringLiteral("En&coding"));
 
     // Menu entries must be the registry's commands, with the registry's shortcuts.
     const QStringList ids = {
@@ -879,6 +891,202 @@ void MainWindowTest::ctrlWheelZoomsTheWindow()
     QApplication::sendEvent(viewport, &up);
 
     QCOMPARE(bar->zoom(), QStringLiteral("110%"));
+}
+
+namespace
+{
+
+QToolButton* statusButton(const MainWindow& window, const QString& accessibleName)
+{
+    for (QToolButton* button : window.findChildren<QToolButton*>()) {
+        if (button->accessibleName() == accessibleName) {
+            return button;
+        }
+    }
+    return nullptr;
+}
+
+QStringList ids(const QList<QAction*>& actions)
+{
+    QStringList result;
+    for (const QAction* action : actions) {
+        if (!action->isSeparator()) {
+            result << action->objectName();
+        }
+    }
+    return result;
+}
+
+} // namespace
+
+void MainWindowTest::encodingMenuHasEveryEncodingAndLineEnding()
+{
+    MainWindow window(scriptedDialogs());
+    QMenu* menu = window.findChildren<QMenu*>().at(3); // File, Edit, View, Encoding
+    QCOMPARE(menu->title(), QStringLiteral("En&coding"));
+
+    QCOMPARE(ids(menu->actions()),
+             (QStringList{"encoding.utf8", "encoding.utf8Bom", "encoding.utf16Le",
+                          "encoding.utf16LeNoBom", "encoding.utf16Be", "encoding.utf16BeNoBom",
+                          "encoding.ansi", "lineEnding.crlf", "lineEnding.lf", "lineEnding.cr"}));
+
+    // A separator splits the encodings from the line endings, and every entry is a check item.
+    QCOMPARE(menu->actions().size(), 11);
+    QVERIFY(menu->actions().at(7)->isSeparator());
+    for (const QAction* action : menu->actions()) {
+        QVERIFY(action->isSeparator() || action->isCheckable());
+    }
+    QCOMPARE(window.findChild<QAction*>("encoding.utf8Bom")->text(),
+             QStringLiteral("UTF-8 with BOM"));
+    QCOMPARE(window.findChild<QAction*>("lineEnding.lf")->text(), QStringLiteral("&Unix (LF)"));
+}
+
+void MainWindowTest::encodingMenuChecksFollowTheActiveDocument()
+{
+    MainWindow window(scriptedDialogs());
+    QMenu* menu = window.findChildren<QMenu*>().at(3);
+    const auto checked = [&] {
+        emit menu->aboutToShow();
+        QStringList result;
+        for (const QAction* action : menu->actions()) {
+            if (!action->isSeparator() && action->isChecked()) {
+                result << action->objectName();
+            }
+        }
+        return result;
+    };
+
+    QCOMPARE(checked(), (QStringList{"encoding.utf8", "lineEnding.crlf"}));
+
+    window.findChild<QAction*>("encoding.utf16Be")->trigger();
+    window.findChild<QAction*>("lineEnding.cr")->trigger();
+    QCOMPARE(checked(), (QStringList{"encoding.utf16Be", "lineEnding.cr"}));
+
+    window.commands().run("file.new"); // the new tab has its own settings
+    QCOMPARE(checked(), (QStringList{"encoding.utf8", "lineEnding.crlf"}));
+    window.commands().run("tab.previous");
+    QCOMPARE(checked(), (QStringList{"encoding.utf16Be", "lineEnding.cr"}));
+}
+
+void MainWindowTest::choosingFromTheEncodingMenuUpdatesTheStatusBarAndTab()
+{
+    MainWindow window(scriptedDialogs());
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QVERIFY(!window.isWindowModified());
+
+    window.findChild<QAction*>("encoding.utf16LeNoBom")->trigger();
+    window.findChild<QAction*>("lineEnding.lf")->trigger();
+
+    QCOMPARE(bar->encoding(), QStringLiteral("UTF-16 LE (no BOM)"));
+    QCOMPARE(bar->lineEnding(), QStringLiteral("LF"));
+    QVERIFY(window.isWindowModified()); // a different format is unsaved work
+}
+
+void MainWindowTest::savingAfterChoosingFromTheMenuWritesTheNewFormat()
+{
+    write("a.txt", "x\ny\n");
+    m_openAnswer = path("a.txt");
+    MainWindow window(scriptedDialogs());
+    window.commands().run("file.open");
+
+    window.findChild<QAction*>("encoding.utf8Bom")->trigger();
+    window.findChild<QAction*>("lineEnding.crlf")->trigger();
+    window.commands().run("file.save");
+
+    QCOMPARE(read("a.txt"), QByteArray::fromHex("EFBBBF") + "x\r\ny\r\n");
+    QVERIFY(!window.isWindowModified());
+    QCOMPARE(m_saveAsked, 0); // the file already had a name
+}
+
+void MainWindowTest::refusedAnsiShowsAnErrorInTheWindow()
+{
+    MainWindow window(scriptedDialogs());
+    type(window, QStringLiteral("smile \U0001F600"));
+
+    window.findChild<QAction*>("encoding.ansi")->trigger();
+
+    QCOMPARE(m_errors.size(), 1);
+    QVERIFY2(m_errors.first().contains("ANSI"), qPrintable(m_errors.first()));
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    QCOMPARE(bar->encoding(), QStringLiteral("UTF-8")); // unchanged
+    QVERIFY(!window.findChild<QAction*>("encoding.ansi")->isChecked());
+}
+
+void MainWindowTest::clickingTheEncodingSegmentOpensTheEncodingChoices()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QToolButton* button = statusButton(window, "Encoding");
+    QVERIFY(button != nullptr);
+
+    button->click();
+
+    auto* popup = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+    QVERIFY(popup != nullptr);
+    QCOMPARE(ids(popup->actions()),
+             (QStringList{"encoding.utf8", "encoding.utf8Bom", "encoding.utf16Le",
+                          "encoding.utf16LeNoBom", "encoding.utf16Be", "encoding.utf16BeNoBom",
+                          "encoding.ansi"}));
+    // It shows the current choice, like the Encoding menu.
+    QVERIFY(window.findChild<QAction*>("encoding.utf8")->isChecked());
+    popup->close();
+}
+
+void MainWindowTest::clickingTheLineEndingSegmentOpensTheLineEndingChoices()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QToolButton* button = statusButton(window, "Line ending");
+    QVERIFY(button != nullptr);
+
+    button->click();
+
+    auto* popup = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+    QVERIFY(popup != nullptr);
+    QCOMPARE(ids(popup->actions()),
+             (QStringList{"lineEnding.crlf", "lineEnding.lf", "lineEnding.cr"}));
+    QVERIFY(window.findChild<QAction*>("lineEnding.crlf")->isChecked());
+    popup->close();
+}
+
+void MainWindowTest::choosingFromTheStatusBarPopupChangesTheDocument()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+
+    statusButton(window, "Encoding")->click();
+    auto* popup = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+    QVERIFY(popup != nullptr);
+    window.findChild<QAction*>("encoding.utf16Le")->trigger(); // what picking the entry does
+    popup->close();
+
+    QCOMPARE(bar->encoding(), QStringLiteral("UTF-16 LE"));
+    QVERIFY(window.isWindowModified());
+}
+
+void MainWindowTest::statusBarPopupsReuseTheMenuActions()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    // Opening and closing pop-ups many times must not duplicate or destroy the shared actions.
+    for (int i = 0; i < 3; ++i) {
+        statusButton(window, "Encoding")->click();
+        auto* popup = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+        QVERIFY(popup != nullptr);
+        popup->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
+    QCOMPARE(window.findChildren<QAction*>("encoding.ansi").size(), 1);
+    QVERIFY(window.findChild<QAction*>("encoding.ansi") != nullptr);
+    window.findChild<QAction*>("encoding.ansi")->trigger(); // still works after the pop-ups
+    QVERIFY(window.findChild<QAction*>("encoding.ansi")->isChecked());
 }
 
 QTEST_MAIN(MainWindowTest)

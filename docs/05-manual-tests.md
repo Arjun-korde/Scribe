@@ -119,6 +119,28 @@ Use a long text file (a few screens of long lines) so wrapping and zoom are easy
 | 13 | Set Windows scaling to 150% and to 200% | The status bar text stays readable and is not clipped. |
 | 14 | Set Windows text size to Large (Accessibility) | The segments still fit; nothing overlaps. |
 
+## Encoding menu and status bar choices
+
+These change how the file is **written on the next save**; they do not re-read it. Use small files and compare the saved bytes (a hex editor, or `Format-Hex` in PowerShell).
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Open the Encoding menu in a new tab | The menu lists the 7 encodings, a separator, then Windows (CRLF), Unix (LF), Old Mac (CR). `UTF-8` and `Windows (CRLF)` have a check mark; the others none. |
+| 2 | Open an LF file, open the Encoding menu | `Unix (LF)` is checked, matching the status bar. |
+| 3 | Choose `UTF-16 LE` | The status bar shows `UTF-16 LE`, the tab gets ` *`, and the check mark moves. Nothing in the text changes. |
+| 4 | Save, then open the file in Notepad | Notepad shows the same text and reports Unicode (UTF-16 LE). In a hex editor the file starts with `FF FE`. |
+| 5 | Choose `UTF-8 with BOM`, save | The file starts with `EF BB BF` and the text is unchanged. |
+| 6 | Choose `Windows (CRLF)` on an LF file, save | Every line break is now `0D 0A`. Choosing `Unix (LF)` writes `0A` only; `Old Mac (CR)` writes `0D` only. |
+| 7 | Choose the format the document already has | Nothing changes and the tab does not get ` *`. |
+| 8 | Type an emoji, choose `ANSI` | A message says the encoding was not changed because the text has characters ANSI cannot store. The status bar and check mark still show the old encoding. |
+| 9 | Type only plain English text, choose `ANSI`, save | It is saved. In a hex editor each character is one byte. |
+| 10 | Click the encoding in the status bar (`UTF-8`) | A menu opens upwards from it with the 7 encodings and the current one checked. Picking one behaves exactly like the Encoding menu, and the editor keeps keyboard focus. |
+| 11 | Click the line ending in the status bar (`CRLF`) | A menu with the 3 line endings opens. |
+| 12 | Hover the two clickable segments | A tooltip says "Change the encoding" / "Change the line ending". The other segments are not clickable. |
+| 13 | Use two tabs with different settings and switch between them | The check marks, status bar and pop-ups always show the active tab. |
+| 14 | Open a file that was detected with the wrong encoding (for example an ANSI file with accents shown as junk) and choose UTF-8 | The text is **not** re-read (known limitation): this only changes how it is saved. Do not save over the original. |
+| 15 | Close the tab after changing only the encoding | The unsaved-changes question appears, because the format change counts as a modification. |
+
 ## Error handling
 
 | # | Steps | Expected |

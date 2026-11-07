@@ -5,6 +5,7 @@
 #include "EditorStatusBar.h"
 #include "EditorTabs.h"
 #include "EditorWidget.h"
+#include "EncodingCommands.h"
 #include "FileCommands.h"
 #include "TabCommands.h"
 #include "ViewCommands.h"
@@ -41,6 +42,10 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
             &MainWindow::updateTitle);
     connect(m_tabs, &scribe::editor::EditorTabs::filesDropped, this,
             [this](const QStringList& paths) { m_controller->openFiles(paths); });
+    connect(m_statusBar, &scribe::editor::EditorStatusBar::encodingClicked, this,
+            [this](QWidget* anchor) { showChoices(anchor, m_encodingActions); });
+    connect(m_statusBar, &scribe::editor::EditorStatusBar::lineEndingClicked, this,
+            [this](QWidget* anchor) { showChoices(anchor, m_lineEndingActions); });
     updateTitle();
 }
 
@@ -70,6 +75,7 @@ void MainWindow::registerCommands()
 {
     FileCommands::registerIn(m_commands, *m_controller, *this);
     EditCommands::registerIn(m_commands, *m_tabs);
+    EncodingCommands::registerIn(m_commands, *m_controller, *m_tabs);
 
     ViewCommands::FontChooser
         fontChooser; // left empty when there is no dialog: Font is unavailable
@@ -83,18 +89,9 @@ void MainWindow::registerCommands()
 
 void MainWindow::buildMenus()
 {
-    // Menus show a command as available only if it can run right now (for example Copy needs a
-    // selection), so they ask the registry each time they open. When a menu closes every entry
-    // is switched back on: a disabled QAction also disables its shortcut, and the state computed
-    // at opening time is stale a moment later. The registry refuses commands that cannot run.
     const auto addMenu = [this](const QString& title) {
         QMenu* menu = menuBar()->addMenu(title);
-        connect(menu, &QMenu::aboutToShow, this, [this, menu] { refreshMenuState(menu); });
-        connect(menu, &QMenu::aboutToHide, this, [menu] {
-            for (QAction* action : menu->actions()) {
-                action->setEnabled(true);
-            }
-        });
+        watchMenu(menu);
         return menu;
     };
 
@@ -134,6 +131,46 @@ void MainWindow::buildMenus()
     viewMenu->addSeparator();
     addCommandAction(viewMenu, TabCommands::kNext);
     addCommandAction(viewMenu, TabCommands::kPrevious);
+
+    // How the active document is written on the next save. The same actions are offered from the
+    // status bar, so they are remembered in two lists.
+    QMenu* encodingMenu = addMenu(tr("En&coding"));
+    for (const auto& entry : EncodingCommands::encodings()) {
+        m_encodingActions.append(addCommandAction(encodingMenu, entry.id));
+    }
+    encodingMenu->addSeparator();
+    for (const auto& entry : EncodingCommands::lineEndings()) {
+        m_lineEndingActions.append(addCommandAction(encodingMenu, entry.id));
+    }
+}
+
+void MainWindow::watchMenu(QMenu* menu)
+{
+    // Menus show a command as available only if it can run right now (for example Copy needs a
+    // selection), so they ask the registry each time they open. When a menu closes every entry
+    // is switched back on: a disabled QAction also disables its shortcut, and the state computed
+    // at opening time is stale a moment later. The registry refuses commands that cannot run.
+    connect(menu, &QMenu::aboutToShow, this, [this, menu] { refreshMenuState(menu); });
+    connect(menu, &QMenu::aboutToHide, this, [menu] {
+        for (QAction* action : menu->actions()) {
+            action->setEnabled(true);
+        }
+    });
+}
+
+void MainWindow::showChoices(QWidget* anchor, const QList<QAction*>& actions)
+{
+    // A pop-up built from the actions that already exist, so its check marks and behavior are
+    // exactly those of the Encoding menu. It deletes itself when it closes.
+    auto* menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    menu->addActions(actions);
+    watchMenu(menu);
+
+    // The status bar is at the bottom of the window, so open the menu upwards from the segment.
+    QPoint position = anchor->mapToGlobal(QPoint(0, 0));
+    position.setY(position.y() - menu->sizeHint().height());
+    menu->popup(position);
 }
 
 void MainWindow::refreshMenuState(QMenu* menu)

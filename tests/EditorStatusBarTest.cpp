@@ -5,8 +5,10 @@
 
 #include <QFile>
 #include <QLabel>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTextCursor>
+#include <QToolButton>
 #include <QtTest>
 
 using scribe::core::Encoding;
@@ -33,6 +35,12 @@ private slots:
     void followsTheActiveTab();
     void keepsWorkingAfterTheFollowedTabIsClosed();
     void segmentsHaveAccessibleNames();
+
+    void clickingTheEncodingSegmentReportsItself();
+    void clickingTheLineEndingSegmentReportsItself();
+    void onlyEncodingAndLineEndingAreClickable();
+    void clickingDoesNotTakeFocusFromTheEditor();
+    void clickableSegmentsExplainThemselvesInATooltip();
 
 private:
     QString makeFile(const QString& name, const QByteArray& bytes) const;
@@ -209,9 +217,93 @@ void EditorStatusBarTest::segmentsHaveAccessibleNames()
     for (const QLabel* label : bar.findChildren<QLabel*>()) {
         names << label->accessibleName();
     }
+    for (const QToolButton* button : bar.findChildren<QToolButton*>()) {
+        names << button->accessibleName(); // the encoding and line ending segments
+    }
     names.sort();
     QCOMPARE(names, (QStringList{"Character count", "Cursor position", "Encoding", "Line ending",
                                  "Zoom"}));
+}
+
+namespace
+{
+
+// The status bar's buttons are found by their accessible name, as a screen reader would.
+QToolButton* segmentButton(const EditorStatusBar& bar, const QString& accessibleName)
+{
+    for (QToolButton* button : bar.findChildren<QToolButton*>()) {
+        if (button->accessibleName() == accessibleName) {
+            return button;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void EditorStatusBarTest::clickingTheEncodingSegmentReportsItself()
+{
+    EditorTabs tabs;
+    const EditorStatusBar bar(tabs);
+    QSignalSpy encodingSpy(&bar, &EditorStatusBar::encodingClicked);
+    QSignalSpy lineEndingSpy(&bar, &EditorStatusBar::lineEndingClicked);
+    QToolButton* button = segmentButton(bar, "Encoding");
+    QVERIFY(button != nullptr);
+
+    button->click();
+
+    QCOMPARE(encodingSpy.count(), 1);
+    QCOMPARE(lineEndingSpy.count(), 0);
+    QCOMPARE(encodingSpy.first().first().value<QWidget*>(), button); // the anchor for a menu
+}
+
+void EditorStatusBarTest::clickingTheLineEndingSegmentReportsItself()
+{
+    EditorTabs tabs;
+    const EditorStatusBar bar(tabs);
+    QSignalSpy encodingSpy(&bar, &EditorStatusBar::encodingClicked);
+    QSignalSpy lineEndingSpy(&bar, &EditorStatusBar::lineEndingClicked);
+    QToolButton* button = segmentButton(bar, "Line ending");
+    QVERIFY(button != nullptr);
+
+    button->click();
+
+    QCOMPARE(lineEndingSpy.count(), 1);
+    QCOMPARE(encodingSpy.count(), 0);
+    QCOMPARE(lineEndingSpy.first().first().value<QWidget*>(), button);
+}
+
+void EditorStatusBarTest::onlyEncodingAndLineEndingAreClickable()
+{
+    EditorTabs tabs;
+    const EditorStatusBar bar(tabs);
+
+    QStringList buttons;
+    for (const QToolButton* button : bar.findChildren<QToolButton*>()) {
+        buttons << button->accessibleName();
+    }
+    buttons.sort();
+    QCOMPARE(buttons, (QStringList{"Encoding", "Line ending"}));
+}
+
+void EditorStatusBarTest::clickingDoesNotTakeFocusFromTheEditor()
+{
+    EditorTabs tabs;
+    const EditorStatusBar bar(tabs);
+
+    // A click on a segment must leave the caret in the text, ready for typing.
+    for (const QToolButton* button : bar.findChildren<QToolButton*>()) {
+        QCOMPARE(button->focusPolicy(), Qt::NoFocus);
+    }
+}
+
+void EditorStatusBarTest::clickableSegmentsExplainThemselvesInATooltip()
+{
+    EditorTabs tabs;
+    const EditorStatusBar bar(tabs);
+
+    QVERIFY(!segmentButton(bar, "Encoding")->toolTip().isEmpty());
+    QVERIFY(!segmentButton(bar, "Line ending")->toolTip().isEmpty());
 }
 
 QTEST_MAIN(EditorStatusBarTest)
