@@ -37,8 +37,9 @@ public:
     [[nodiscard]] QString zoom() const;
 
 signals:
-    /// The encoding / line ending segment was clicked. `anchor` is the segment, so that the
-    /// receiver can open a menu next to it.
+    /// The line/column, encoding or line ending segment was clicked. `anchor` is the segment, so
+    /// that the receiver can open a menu next to it.
+    void positionClicked(QWidget* anchor);
     void encodingClicked(QWidget* anchor);
     void lineEndingClicked(QWidget* anchor);
 
@@ -55,7 +56,7 @@ private:
     EditorTabs& m_tabs;
     QPointer<EditorWidget> m_editor;
 
-    QLabel* m_position = nullptr;
+    QToolButton* m_position = nullptr;
     QLabel* m_characters = nullptr;
     QToolButton* m_encoding = nullptr;
     QToolButton* m_lineEnding = nullptr;

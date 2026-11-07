@@ -10,6 +10,8 @@ add_library(scribe_core STATIC
     Document.cpp
     CommandRegistry.h
     CommandRegistry.cpp
+    LineNumber.h
+    LineNumber.cpp
 )
 
 target_include_directories(scribe_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

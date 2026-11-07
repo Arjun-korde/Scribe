@@ -67,7 +67,7 @@ Effort assumes part-time work and can be adjusted.
 - [ ] Find, Find Next, Find Previous
 - [ ] Replace and Replace All
 - [ ] Match case, wrap around
-- [ ] Go To Line
+- [x] Go To Line
 
 **Format and View**
 - [x] Word wrap toggle

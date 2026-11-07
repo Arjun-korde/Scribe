@@ -141,6 +141,29 @@ These change how the file is **written on the next save**; they do not re-read i
 | 14 | Open a file that was detected with the wrong encoding (for example an ANSI file with accents shown as junk) and choose UTF-8 | The text is **not** re-read (known limitation): this only changes how it is saved. Do not save over the original. |
 | 15 | Close the tab after changing only the encoding | The unsaved-changes question appears, because the format change counts as a modification. |
 
+## Go To Line
+
+Use a file of a few hundred lines (for example 300) with some long lines.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Search menu | It contains **Go To Line...** with `Ctrl+G` shown. |
+| 2 | Put the caret on line 12 and press `Ctrl+G` | A small dialog "Go To Line" opens with `12` filled in and selected, and the text "Line number (1 to 300):". Typing replaces the 12. |
+| 3 | Type `250`, press Enter | The dialog closes; the caret is at the start of line 250 (status bar `Ln 250, Col 1`) and that line is visible, roughly in the middle of the window. |
+| 4 | Press `Ctrl+G`, type `310` | The line `Enter a number from 1 to 300` appears under the field and the **Go** button is greyed out. The number is not changed to 300. |
+| 5 | With `310` in the field, press Enter | Nothing happens; the dialog stays open. |
+| 6 | Delete one digit (`31`) | The hint disappears and Go becomes available. Enter now closes the dialog and goes to line 31. |
+| 7 | Type `0`, then clear the field | Both show the hint and disable Go. |
+| 8 | Try typing letters, `-`, `+`, `.` or spaces | They cannot be typed; only digits appear. |
+| 9 | Press Esc, or click Cancel | The dialog closes and the caret does not move. |
+| 10 | Click the line/column text (`Ln 5, Col 3`) in the status bar | The same dialog opens. The tooltip on that text says "Go to line". |
+| 11 | Jump to a line that is already on screen (for example from line 1 to line 3) | The caret moves but the text does not scroll. |
+| 12 | With text selected, go to another line | The selection is removed; the text is unchanged and the tab does not get a `*`. |
+| 13 | Turn word wrap off/on and jump again | A long wrapped line is still one line: line numbers count lines of text, not screen rows. |
+| 14 | Use two tabs of different lengths | The dialog's limit is the active tab's line count. |
+| 15 | Windows scaling 150% / 200%, Large text size | The dialog and its hint are readable and not clipped. |
+| 16 | **Known gap:** the invalid field is not drawn with a red border yet | By decision, styling comes with the theme in Phase 2. The hint text is the only indicator for now. |
+
 ## Error handling
 
 | # | Steps | Expected |

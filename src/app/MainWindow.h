@@ -49,7 +49,7 @@ private:
     scribe::core::CommandRegistry m_commands;
     scribe::editor::EditorTabs* m_tabs = nullptr;           // owned by Qt as the central widget
     scribe::editor::EditorStatusBar* m_statusBar = nullptr; // the window's status bar, owned by Qt
-    decltype(FileDialogs::chooseFont) m_chooseFont;         // for the View > Font command
+    FileDialogs m_dialogs; // a copy, for the commands that ask the user (font, line number)
     // The Encoding menu's actions, also offered from the status bar's pop-ups.
     QList<QAction*> m_encodingActions;
     QList<QAction*> m_lineEndingActions;

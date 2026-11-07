@@ -1,6 +1,7 @@
 #include "EditorWidget.h"
 
 #include <QFileInfo>
+#include <QTextBlock>
 #include <QWheelEvent>
 
 namespace scribe::editor
@@ -76,6 +77,23 @@ void EditorWidget::setLineEnding(core::LineEnding lineEnding)
 {
     m_fileDocument.setLineEnding(lineEnding);
     emit stateChanged();
+}
+
+bool EditorWidget::goToLine(int line)
+{
+    if (line < 1 || line > lineCount()) {
+        return false;
+    }
+
+    const QTextCursor target(document()->findBlockByNumber(line - 1)); // at the block's start
+    const bool alreadyVisible = viewport()->rect().contains(cursorRect(target));
+
+    setTextCursor(target);
+    if (!alreadyVisible) {
+        centerCursor(); // setTextCursor only scrolls far enough to show the line at an edge
+    }
+    setFocus();
+    return true;
 }
 
 void EditorWidget::syncTextToDocument()

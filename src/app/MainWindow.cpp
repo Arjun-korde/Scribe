@@ -7,6 +7,7 @@
 #include "EditorWidget.h"
 #include "EncodingCommands.h"
 #include "FileCommands.h"
+#include "SearchCommands.h"
 #include "TabCommands.h"
 #include "ViewCommands.h"
 
@@ -17,6 +18,7 @@
 #include <QMenuBar>
 
 using scribe::editor::EditCommands;
+using scribe::editor::SearchCommands;
 using scribe::editor::TabCommands;
 using scribe::editor::ViewCommands;
 
@@ -27,7 +29,7 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     : QMainWindow(parent)
     , m_tabs(new scribe::editor::EditorTabs(this))
-    , m_chooseFont(dialogs.chooseFont) // copied before the controller takes the dialogs
+    , m_dialogs(dialogs) // copied before the controller takes the dialogs
     , m_controller(std::make_unique<DocumentController>(*m_tabs, std::move(dialogs), this))
 {
     resize(900, 600);
@@ -42,6 +44,8 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
             &MainWindow::updateTitle);
     connect(m_tabs, &scribe::editor::EditorTabs::filesDropped, this,
             [this](const QStringList& paths) { m_controller->openFiles(paths); });
+    connect(m_statusBar, &scribe::editor::EditorStatusBar::positionClicked, this,
+            [this] { m_commands.run(SearchCommands::kGoToLine); });
     connect(m_statusBar, &scribe::editor::EditorStatusBar::encodingClicked, this,
             [this](QWidget* anchor) { showChoices(anchor, m_encodingActions); });
     connect(m_statusBar, &scribe::editor::EditorStatusBar::lineEndingClicked, this,
@@ -77,12 +81,20 @@ void MainWindow::registerCommands()
     EditCommands::registerIn(m_commands, *m_tabs);
     EncodingCommands::registerIn(m_commands, *m_controller, *m_tabs);
 
-    ViewCommands::FontChooser
-        fontChooser; // left empty when there is no dialog: Font is unavailable
-    if (m_chooseFont) {
-        fontChooser = [this](const QFont& current) { return m_chooseFont(this, current); };
+    // A chooser is left empty when its dialog is missing, which makes the command unavailable.
+    ViewCommands::FontChooser fontChooser;
+    if (m_dialogs.chooseFont) {
+        fontChooser = [this](const QFont& current) { return m_dialogs.chooseFont(this, current); };
     }
     ViewCommands::registerIn(m_commands, *m_tabs, *m_statusBar, fontChooser);
+
+    SearchCommands::LineNumberChooser lineChooser;
+    if (m_dialogs.askLineNumber) {
+        lineChooser = [this](int currentLine, int lineCount) {
+            return m_dialogs.askLineNumber(this, currentLine, lineCount);
+        };
+    }
+    SearchCommands::registerIn(m_commands, *m_tabs, lineChooser);
 
     TabCommands::registerIn(m_commands, *m_tabs);
 }
@@ -118,6 +130,9 @@ void MainWindow::buildMenus()
     editMenu->addSeparator();
     addCommandAction(editMenu, EditCommands::kSelectAll);
     addCommandAction(editMenu, EditCommands::kInsertDateTime);
+
+    QMenu* searchMenu = addMenu(tr("&Search"));
+    addCommandAction(searchMenu, SearchCommands::kGoToLine);
 
     QMenu* viewMenu = addMenu(tr("&View"));
     addCommandAction(viewMenu, ViewCommands::kWordWrap);

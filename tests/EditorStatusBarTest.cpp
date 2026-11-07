@@ -36,9 +36,10 @@ private slots:
     void keepsWorkingAfterTheFollowedTabIsClosed();
     void segmentsHaveAccessibleNames();
 
+    void clickingThePositionSegmentReportsItself();
     void clickingTheEncodingSegmentReportsItself();
     void clickingTheLineEndingSegmentReportsItself();
-    void onlyEncodingAndLineEndingAreClickable();
+    void onlyPositionEncodingAndLineEndingAreClickable();
     void clickingDoesNotTakeFocusFromTheEditor();
     void clickableSegmentsExplainThemselvesInATooltip();
 
@@ -241,6 +242,22 @@ QToolButton* segmentButton(const EditorStatusBar& bar, const QString& accessible
 
 } // namespace
 
+void EditorStatusBarTest::clickingThePositionSegmentReportsItself()
+{
+    EditorTabs tabs;
+    const EditorStatusBar bar(tabs);
+    QSignalSpy positionSpy(&bar, &EditorStatusBar::positionClicked);
+    QSignalSpy encodingSpy(&bar, &EditorStatusBar::encodingClicked);
+    QToolButton* button = segmentButton(bar, "Cursor position");
+    QVERIFY(button != nullptr);
+
+    button->click();
+
+    QCOMPARE(positionSpy.count(), 1);
+    QCOMPARE(encodingSpy.count(), 0);
+    QCOMPARE(positionSpy.first().first().value<QWidget*>(), button);
+}
+
 void EditorStatusBarTest::clickingTheEncodingSegmentReportsItself()
 {
     EditorTabs tabs;
@@ -273,7 +290,7 @@ void EditorStatusBarTest::clickingTheLineEndingSegmentReportsItself()
     QCOMPARE(lineEndingSpy.first().first().value<QWidget*>(), button);
 }
 
-void EditorStatusBarTest::onlyEncodingAndLineEndingAreClickable()
+void EditorStatusBarTest::onlyPositionEncodingAndLineEndingAreClickable()
 {
     EditorTabs tabs;
     const EditorStatusBar bar(tabs);
@@ -283,7 +300,7 @@ void EditorStatusBarTest::onlyEncodingAndLineEndingAreClickable()
         buttons << button->accessibleName();
     }
     buttons.sort();
-    QCOMPARE(buttons, (QStringList{"Encoding", "Line ending"}));
+    QCOMPARE(buttons, (QStringList{"Cursor position", "Encoding", "Line ending"}));
 }
 
 void EditorStatusBarTest::clickingDoesNotTakeFocusFromTheEditor()
@@ -302,6 +319,7 @@ void EditorStatusBarTest::clickableSegmentsExplainThemselvesInATooltip()
     EditorTabs tabs;
     const EditorStatusBar bar(tabs);
 
+    QCOMPARE(segmentButton(bar, "Cursor position")->toolTip(), QStringLiteral("Go to line"));
     QVERIFY(!segmentButton(bar, "Encoding")->toolTip().isEmpty());
     QVERIFY(!segmentButton(bar, "Line ending")->toolTip().isEmpty());
 }
