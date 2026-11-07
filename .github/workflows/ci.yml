@@ -62,15 +62,57 @@ jobs:
           $env:PATH = "$env:QT_ROOT_DIR\bin;$env:PATH"
           ctest --preset ${{ matrix.preset }}
 
+  # Runs next to build-test instead of after it. clang-tidy only needs compile_commands.json and the
+  # generated moc files (the tests include "*.moc"), so it builds just the autogen targets.
+  lint:
+    name: lint
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Load MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Set up vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:RUNNER_TEMP\vcpkg"
+          & "$env:RUNNER_TEMP\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\vcpkg\archives
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          $env:CMAKE_PREFIX_PATH = $env:QT_ROOT_DIR
+          cmake --preset debug -DCMAKE_GLOBAL_AUTOGEN_TARGET=ON
+
+      - name: Generate moc files
+        run: cmake --build --preset debug --target autogen
+
       - name: Check formatting
-        if: matrix.preset == 'debug'
         shell: pwsh
         run: |
           $files = git ls-files 'src/*.cpp' 'src/*.h' 'tests/*.cpp' 'tests/*.h'
           clang-format --dry-run -Werror $files
 
       - name: Static analysis (clang-tidy)
-        if: matrix.preset == 'debug'
         shell: pwsh
         run: |
           # One clang-tidy process per file, several at a time. Run one after another this step took

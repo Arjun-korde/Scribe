@@ -8,6 +8,8 @@ add_library(scribe_ui STATIC
     DocumentController.cpp
     FileCommands.h
     FileCommands.cpp
+    EncodingCommands.h
+    EncodingCommands.cpp
 )
 
 target_include_directories(scribe_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -78,7 +78,7 @@ Effort assumes part-time work and can be adjusted.
 **Text correctness**
 - [x] Encoding detection and handling: UTF-8 (with and without BOM), UTF-16 LE/BE, ANSI
 - [x] Line-ending detection and preservation: CRLF, LF, CR
-- [ ] Convert line endings; Save with a different encoding (logic done in `Document`, menu entries pending)
+- [x] Convert line endings; Save with a different encoding
 - [ ] Core architecture: `Document`, `IDocumentBackend` (in-memory implementation), `CommandRegistry` (done), `SettingsManager` (pending)
 
 **Tests:** encoding detection, line-ending detection and conversion, document load/save round trips.

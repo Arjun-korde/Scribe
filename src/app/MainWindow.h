@@ -41,6 +41,8 @@ private:
     void registerCommands();
     void buildMenus();
     void refreshMenuState(QMenu* menu);
+    void watchMenu(QMenu* menu);
+    void showChoices(QWidget* anchor, const QList<QAction*>& actions);
     QAction* addCommandAction(QMenu* menu, const QString& commandId);
     void updateTitle();
 
@@ -48,6 +50,9 @@ private:
     scribe::editor::EditorTabs* m_tabs = nullptr;           // owned by Qt as the central widget
     scribe::editor::EditorStatusBar* m_statusBar = nullptr; // the window's status bar, owned by Qt
     decltype(FileDialogs::chooseFont) m_chooseFont;         // for the View > Font command
+    // The Encoding menu's actions, also offered from the status bar's pop-ups.
+    QList<QAction*> m_encodingActions;
+    QList<QAction*> m_lineEndingActions;
     // Declared last, so it is destroyed first: it holds a guard installed on m_tabs.
     std::unique_ptr<DocumentController> m_controller;
 };

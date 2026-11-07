@@ -45,6 +45,15 @@ public:
     void saveFile();
     void saveFileAs();
 
+    /// Changes how the active document will be written by the next save (the text is not
+    /// re-read). Refused, with an explanation and no change, if the text has characters the new
+    /// encoding cannot store, so a later save cannot fail for that reason. Returns whether the
+    /// encoding is now `encoding`.
+    bool setEncoding(const scribe::core::EncodingInfo& encoding);
+
+    /// Changes the line ending the next save will write. Always possible.
+    void setLineEnding(scribe::core::LineEnding lineEnding);
+
 private:
     /// Saves to the editor's path, or asks for one if it has none. Returns true only if the file
     /// was written; a cancelled dialog or a failure returns false.

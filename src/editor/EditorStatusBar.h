@@ -5,6 +5,7 @@
 #include <QStatusBar>
 
 class QLabel;
+class QToolButton;
 
 namespace scribe::editor
 {
@@ -12,7 +13,8 @@ namespace scribe::editor
 class EditorTabs;
 class EditorWidget;
 
-/// The bar under the editor: `Ln 3, Col 14 | 1,204 chars | UTF-8 | CRLF | 100%`.
+/// The bar under the editor: `Ln 3, Col 14 | 1,204 chars | UTF-8 | CRLF | 100%`. The encoding and
+/// line ending segments are buttons: clicking one reports it so the window can show its choices.
 /// It always describes the active tab and updates as the user types, moves the caret, switches
 /// tabs, or changes the encoding, line ending or zoom.
 class EditorStatusBar : public QStatusBar
@@ -34,8 +36,15 @@ public:
     [[nodiscard]] QString lineEnding() const;
     [[nodiscard]] QString zoom() const;
 
+signals:
+    /// The encoding / line ending segment was clicked. `anchor` is the segment, so that the
+    /// receiver can open a menu next to it.
+    void encodingClicked(QWidget* anchor);
+    void lineEndingClicked(QWidget* anchor);
+
 private:
     QLabel* addSegment(const QString& accessibleName);
+    QToolButton* addButtonSegment(const QString& accessibleName, const QString& toolTip);
 
     /// Starts following the active tab's editor (and stops following the previous one).
     void followCurrentEditor();
@@ -48,8 +57,8 @@ private:
 
     QLabel* m_position = nullptr;
     QLabel* m_characters = nullptr;
-    QLabel* m_encoding = nullptr;
-    QLabel* m_lineEnding = nullptr;
+    QToolButton* m_encoding = nullptr;
+    QToolButton* m_lineEnding = nullptr;
     QLabel* m_zoom = nullptr;
 };
 

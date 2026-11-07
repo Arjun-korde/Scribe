@@ -55,6 +55,33 @@ void DocumentController::saveFileAs()
     saveAs(*m_tabs.currentEditor());
 }
 
+bool DocumentController::setEncoding(const scribe::core::EncodingInfo& encoding)
+{
+    EditorWidget& editor = *m_tabs.currentEditor();
+    if (editor.fileDocument().encoding() == encoding) {
+        return true;
+    }
+
+    // Line breaks never matter for this check (they exist in every encoding), so the widget's
+    // text can be tested as it is.
+    if (!scribe::core::encode(editor.toPlainText(), encoding)) {
+        m_dialogs.showError(
+            m_dialogParent, tr("Scribe"),
+            tr("The encoding was not changed to %1 because the text contains characters that it "
+               "cannot store.")
+                .arg(scribe::core::encodingName(encoding)));
+        return false;
+    }
+
+    editor.setEncoding(encoding);
+    return true;
+}
+
+void DocumentController::setLineEnding(scribe::core::LineEnding lineEnding)
+{
+    m_tabs.currentEditor()->setLineEnding(lineEnding);
+}
+
 bool DocumentController::save(EditorWidget& editor)
 {
     const QString& path = editor.fileDocument().filePath();

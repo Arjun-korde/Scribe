@@ -20,6 +20,12 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - View menu: Word Wrap, Font..., Zoom In / Out / Restore Default Zoom (`Ctrl++` or `Ctrl+=`, `Ctrl+-`,
   `Ctrl+0`, or Ctrl+mouse wheel), and a Status Bar toggle. Wrapping, font and zoom (10% to 500%) apply
   to every tab, including new ones. The editor starts in Cascadia Mono or Consolas at 11 pt.
+- Encoding menu: choose the encoding the document is saved in (UTF-8, UTF-8 with BOM, UTF-16 LE/BE
+  with or without BOM, ANSI) and its line ending (Windows CRLF, Unix LF, Old Mac CR). The current
+  choice is checked. Clicking the encoding or line ending in the status bar opens the same choices.
+  This changes how the file is written on the next save; it does not re-read the file. Choosing an
+  encoding that cannot store the text (for example ANSI with an emoji in it) is refused with an
+  explanation, so a later save cannot fail for that reason.
 - Status bar showing the line and column, the character count, the encoding, the line ending and the
   zoom of the active tab, updated as you type, move the caret or switch tabs.
 - Drag and drop: drop one or more files from Explorer onto the tab strip or any editor to open them,
@@ -35,8 +41,11 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   the file's encoding cannot store.
 
 ### Known limitations
+- A file opened with the wrong encoding cannot be fixed from the Encoding menu: the menu changes how
+  the file is saved, not how it was read. "Reopen with encoding" is planned for a later version.
 - Word wrap, font and zoom are not remembered between runs yet (that comes with settings), and the
-  status bar segments are not clickable yet. The character count counts each line break as one.
+  zoom, position and character count in the status bar are not clickable yet. The character count
+  counts each line break as one.
 - Dropping files on the menu bar does not open them (only the tab strip and the editors do).
 - Binary files (an `.exe`, an image) are not recognised: they open as garbage, or are refused if their
   bytes would change on save. A file that fails while several are dropped shows one error per file.

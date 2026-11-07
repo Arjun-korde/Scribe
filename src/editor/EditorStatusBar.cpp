@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QToolButton>
 
 namespace scribe::editor
 {
@@ -19,9 +20,13 @@ EditorStatusBar::EditorStatusBar(EditorTabs& tabs, QWidget* parent)
 
     m_position = addSegment(tr("Cursor position"));
     m_characters = addSegment(tr("Character count"));
-    m_encoding = addSegment(tr("Encoding"));
-    m_lineEnding = addSegment(tr("Line ending"));
+    m_encoding = addButtonSegment(tr("Encoding"), tr("Change the encoding"));
+    m_lineEnding = addButtonSegment(tr("Line ending"), tr("Change the line ending"));
     m_zoom = addSegment(tr("Zoom"));
+
+    connect(m_encoding, &QToolButton::clicked, this, [this] { emit encodingClicked(m_encoding); });
+    connect(m_lineEnding, &QToolButton::clicked, this,
+            [this] { emit lineEndingClicked(m_lineEnding); });
 
     connect(&m_tabs, &EditorTabs::currentEditorStateChanged, this,
             &EditorStatusBar::followCurrentEditor);
@@ -76,6 +81,20 @@ QLabel* EditorStatusBar::addSegment(const QString& accessibleName)
     label->setContentsMargins(8, 0, 8, 0);
     addPermanentWidget(label);
     return label;
+}
+
+QToolButton* EditorStatusBar::addButtonSegment(const QString& accessibleName,
+                                               const QString& toolTip)
+{
+    auto* button = new QToolButton(this);
+    button->setAccessibleName(accessibleName);
+    button->setToolTip(toolTip);
+    button->setAutoRaise(true); // flat until hovered, so it looks like the other segments
+    // A click must not move the keyboard focus away from the text. Keyboard users reach the same
+    // choices through the Encoding menu.
+    button->setFocusPolicy(Qt::NoFocus);
+    addPermanentWidget(button);
+    return button;
 }
 
 void EditorStatusBar::followCurrentEditor()
