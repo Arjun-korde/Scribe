@@ -12,6 +12,7 @@ class DocumentController;
 namespace scribe::editor
 {
 class EditorStatusBar;
+class FindBar;
 class EditorTabs;
 class EditorWidget;
 } // namespace scribe::editor
@@ -34,6 +35,9 @@ public:
     scribe::editor::EditorWidget* editor() const;
     int tabCount() const;
 
+    /// The find and replace bar under the tabs (hidden until opened).
+    scribe::editor::FindBar* findBar() const { return m_findBar; }
+
 protected:
     void closeEvent(QCloseEvent* event) override;
 
@@ -49,6 +53,7 @@ private:
     scribe::core::CommandRegistry m_commands;
     scribe::editor::EditorTabs* m_tabs = nullptr;           // owned by Qt as the central widget
     scribe::editor::EditorStatusBar* m_statusBar = nullptr; // the window's status bar, owned by Qt
+    scribe::editor::FindBar* m_findBar = nullptr;           // under the tabs, owned by Qt
     FileDialogs m_dialogs; // a copy, for the commands that ask the user (font, line number)
     // The Encoding menu's actions, also offered from the status bar's pop-ups.
     QList<QAction*> m_encodingActions;

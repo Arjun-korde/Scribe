@@ -64,9 +64,9 @@ Effort assumes part-time work and can be adjusted.
 - [x] Insert date/time (F5)
 
 **Search**
-- [ ] Find, Find Next, Find Previous
-- [ ] Replace and Replace All
-- [ ] Match case, wrap around
+- [x] Find, Find Next, Find Previous
+- [x] Replace and Replace All
+- [x] Match case, wrap around
 - [x] Go To Line
 
 **Format and View**

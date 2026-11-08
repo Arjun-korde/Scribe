@@ -2,12 +2,14 @@
 
 #include "EditorStatusBar.h"
 #include "EditorWidget.h"
+#include "FindBar.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeData>
@@ -103,7 +105,7 @@ private slots:
     void choosingFromTheStatusBarPopupChangesTheDocument();
     void statusBarPopupsReuseTheMenuActions();
 
-    void searchMenuHasGoToLineWithCtrlG();
+    void searchMenuHasTheFindAndGoToLineCommands();
     void goToLineAsksWithTheCurrentLineAndLineCountThenMovesTheCaret();
     void cancellingGoToLineKeepsTheCaret();
     void goToLineUpdatesTheStatusBar();
@@ -111,6 +113,19 @@ private slots:
     void realCtrlGOpensGoToLine();
     void goToLineIsUnavailableWithoutADialog();
     void goToLineActsOnTheActiveTab();
+
+    void findBarIsHiddenAtStartupAndEditorHasTheFocus();
+    void searchMenuHasTheShortcuts();
+    void searchMenuEntriesOpenTheBar();
+    void ctrlFOpensTheBarWithTheFocusInTheFindField();
+    void typingInTheBarSelectsMatchesInTheEditor();
+    void f3AndShiftF3NavigateWithTheBarClosed();
+    void ctrlHOpensTheReplaceRow();
+    void escapeReturnsTheFocusToTheEditor();
+    void replaceAllThenCtrlZRestoresTheTextInOneStep();
+    void replaceAllMarksTheWindowModified();
+    void ctrlFTakesTheSelectedTextAsTheQuery();
+    void shortcutsDoNotTypeIntoTheText();
 
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
@@ -1143,13 +1158,15 @@ QString hundredLines(int count)
 
 } // namespace
 
-void MainWindowTest::searchMenuHasGoToLineWithCtrlG()
+void MainWindowTest::searchMenuHasTheFindAndGoToLineCommands()
 {
     MainWindow window(scriptedDialogs());
     QMenu* menu = menuTitled(window, "&Search");
     QVERIFY(menu != nullptr);
 
-    QCOMPARE(ids(menu->actions()), (QStringList{"search.goToLine"}));
+    QCOMPARE(ids(menu->actions()),
+             (QStringList{"search.find", "search.findNext", "search.findPrevious", "search.replace",
+                          "search.goToLine"}));
     const QAction* action = window.findChild<QAction*>("search.goToLine");
     QVERIFY(action != nullptr);
     QCOMPARE(action->shortcut(), QKeySequence(QStringLiteral("Ctrl+G")));
@@ -1257,6 +1274,211 @@ void MainWindowTest::goToLineActsOnTheActiveTab()
     QCOMPARE(window.editor()->currentLine(), 400);
     window.commands().run("tab.previous");
     QCOMPARE(window.editor()->currentLine(), 4); // the other tab kept its own caret
+}
+
+namespace
+{
+
+QLineEdit* barField(const MainWindow& window, const QString& accessibleName)
+{
+    for (QLineEdit* edit : window.findBar()->findChildren<QLineEdit*>()) {
+        if (edit->accessibleName() == accessibleName) {
+            return edit;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void MainWindowTest::findBarIsHiddenAtStartupAndEditorHasTheFocus()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+
+    QVERIFY(window.findBar() != nullptr);
+    QVERIFY(!window.findBar()->isOpen());
+    QVERIFY(!window.findBar()->isVisible());
+    QVERIFY(window.editor()->hasFocus()); // typing works as soon as the window appears
+}
+
+void MainWindowTest::searchMenuHasTheShortcuts()
+{
+    MainWindow window(scriptedDialogs());
+    const auto shortcut = [&](const char* id) {
+        return window.findChild<QAction*>(id)->shortcut();
+    };
+
+    QCOMPARE(shortcut("search.find"), QKeySequence(QStringLiteral("Ctrl+F")));
+    QCOMPARE(shortcut("search.findNext"), QKeySequence(QStringLiteral("F3")));
+    QCOMPARE(shortcut("search.findPrevious"), QKeySequence(QStringLiteral("Shift+F3")));
+    QCOMPARE(shortcut("search.replace"), QKeySequence(QStringLiteral("Ctrl+H")));
+}
+
+void MainWindowTest::searchMenuEntriesOpenTheBar()
+{
+    MainWindow window(scriptedDialogs());
+
+    window.findChild<QAction*>("search.find")->trigger();
+    QVERIFY(window.findBar()->isOpen());
+    QVERIFY(!window.findBar()->isReplaceRowOpen());
+
+    window.findBar()->closeBar();
+    window.findChild<QAction*>("search.replace")->trigger();
+    QVERIFY(window.findBar()->isReplaceRowOpen());
+}
+
+void MainWindowTest::ctrlFOpensTheBarWithTheFocusInTheFindField()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+
+    QTest::keyClick(window.editor(), Qt::Key_F, Qt::ControlModifier);
+
+    QVERIFY(window.findBar()->isOpen());
+    QVERIFY(window.findBar()->isVisible());
+    QCOMPARE(QApplication::focusWidget(), barField(window, "Find"));
+    QVERIFY(window.editor()->toPlainText().isEmpty()); // no "f" was typed into the text
+}
+
+void MainWindowTest::typingInTheBarSelectsMatchesInTheEditor()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    window.editor()->setPlainText(QStringLiteral("alpha beta gamma beta"));
+    window.editor()->moveCursor(QTextCursor::Start);
+
+    QTest::keyClick(window.editor(), Qt::Key_F, Qt::ControlModifier);
+    QTest::keyClicks(barField(window, "Find"), "beta");
+
+    QCOMPARE(window.editor()->textCursor().selectedText(), QStringLiteral("beta"));
+    QCOMPARE(window.editor()->textCursor().selectionStart(), 6);
+    QCOMPARE(window.findBar()->statusText(), QStringLiteral("1 of 2"));
+
+    QTest::keyClick(barField(window, "Find"), Qt::Key_Return);
+    QCOMPARE(window.editor()->textCursor().selectionStart(), 17);
+}
+
+void MainWindowTest::f3AndShiftF3NavigateWithTheBarClosed()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    window.editor()->setPlainText(QStringLiteral("x.x.x"));
+    window.editor()->moveCursor(QTextCursor::Start);
+    window.findBar()->openFind();
+    window.findBar()->setQuery(QStringLiteral("x"));
+    window.findBar()->closeBar();
+    QVERIFY(window.editor()->hasFocus());
+
+    QTest::keyClick(window.editor(), Qt::Key_F3);
+    QCOMPARE(window.editor()->textCursor().selectionStart(), 2);
+    QTest::keyClick(window.editor(), Qt::Key_F3);
+    QCOMPARE(window.editor()->textCursor().selectionStart(), 4);
+    QTest::keyClick(window.editor(), Qt::Key_F3, Qt::ShiftModifier);
+    QCOMPARE(window.editor()->textCursor().selectionStart(), 2);
+
+    QVERIFY(!window.findBar()->isOpen());                              // the bar stayed closed
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("x.x.x")); // and nothing was typed
+}
+
+void MainWindowTest::ctrlHOpensTheReplaceRow()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+
+    QTest::keyClick(window.editor(), Qt::Key_H, Qt::ControlModifier);
+
+    QVERIFY(window.findBar()->isReplaceRowOpen());
+    QCOMPARE(QApplication::focusWidget(), barField(window, "Find"));
+}
+
+void MainWindowTest::escapeReturnsTheFocusToTheEditor()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    QTest::keyClick(window.editor(), Qt::Key_F, Qt::ControlModifier);
+    QCOMPARE(QApplication::focusWidget(), barField(window, "Find"));
+
+    QTest::keyClick(barField(window, "Find"), Qt::Key_Escape);
+
+    QVERIFY(!window.findBar()->isOpen());
+    QVERIFY(window.editor()->hasFocus()); // the caret is back in the text, ready to type
+}
+
+void MainWindowTest::replaceAllThenCtrlZRestoresTheTextInOneStep()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    window.editor()->setPlainText(QStringLiteral("cat and cat and cat"));
+    window.editor()->document()->clearUndoRedoStacks();
+    window.editor()->moveCursor(QTextCursor::Start);
+
+    QTest::keyClick(window.editor(), Qt::Key_H, Qt::ControlModifier);
+    window.findBar()->setQuery(QStringLiteral("cat"));
+    window.findBar()->setReplacement(QStringLiteral("dog"));
+    QCOMPARE(window.findBar()->replaceAll(), 3);
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("dog and dog and dog"));
+
+    QTest::keyClick(barField(window, "Find"), Qt::Key_Escape); // back to the text
+    QTest::keyClick(window.editor(), Qt::Key_Z, Qt::ControlModifier);
+
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("cat and cat and cat"));
+}
+
+void MainWindowTest::replaceAllMarksTheWindowModified()
+{
+    MainWindow window(scriptedDialogs());
+    window.editor()->setPlainText(QStringLiteral("cat cat"));
+    window.editor()->document()->setModified(false);
+    QVERIFY(!window.isWindowModified());
+
+    window.findBar()->openReplace();
+    window.findBar()->setQuery(QStringLiteral("cat"));
+    window.findBar()->setReplacement(QStringLiteral("dog"));
+    window.findBar()->replaceAll();
+
+    QVERIFY(window.isWindowModified());
+    QVERIFY(window.commands().isEnabled("search.replaceAll"));
+}
+
+void MainWindowTest::ctrlFTakesTheSelectedTextAsTheQuery()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    window.editor()->setPlainText(QStringLiteral("one two three two"));
+    QTextCursor cursor(window.editor()->document());
+    cursor.setPosition(4);
+    cursor.setPosition(7, QTextCursor::KeepAnchor); // "two"
+    window.editor()->setTextCursor(cursor);
+
+    QTest::keyClick(window.editor(), Qt::Key_F, Qt::ControlModifier);
+
+    QCOMPARE(window.findBar()->query(), QStringLiteral("two"));
+    QCOMPARE(barField(window, "Find")->text(), QStringLiteral("two"));
+}
+
+void MainWindowTest::shortcutsDoNotTypeIntoTheText()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+
+    QTest::keyClick(window.editor(), Qt::Key_F, Qt::ControlModifier);
+    window.findBar()->closeBar();
+    QTest::keyClick(window.editor(), Qt::Key_H, Qt::ControlModifier);
+    window.findBar()->closeBar();
+    QTest::keyClick(window.editor(), Qt::Key_F3);
+    QTest::keyClick(window.editor(), Qt::Key_F3, Qt::ShiftModifier);
+
+    QVERIFY(window.editor()->toPlainText().isEmpty());
 }
 
 QTEST_MAIN(MainWindowTest)

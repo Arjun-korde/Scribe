@@ -164,6 +164,37 @@ Use a file of a few hundred lines (for example 300) with some long lines.
 | 15 | Windows scaling 150% / 200%, Large text size | The dialog and its hint are readable and not clipped. |
 | 16 | **Known gap:** the invalid field is not drawn with a red border yet | By decision, styling comes with the theme in Phase 2. The hint text is the only indicator for now. |
 
+## Find and Replace
+
+Use a file with repeated words (for example a few paragraphs mentioning "alpha" several times, in different upper/lower case) plus a second tab with different text.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Search menu | Find... (`Ctrl+F`), Find Next (`F3`), Find Previous (`Shift+F3`), Replace... (`Ctrl+H`), then Go To Line. |
+| 2 | Press `Ctrl+F` | A bar appears under the editor with the focus in the Find field: Find field, `Aa`, `Wrap` (pressed), a result text, `<`, `>` and `x`. No Replace row. |
+| 3 | Type `alp`, `alph`, `alpha` | After each key the first match from the caret is selected and highlighted in the text, and the bar says `1 of N`. Deleting letters keeps the match near where the search began. |
+| 4 | Press `Enter`, then `Shift+Enter` | Next and previous match; the text scrolls to them (a far match is centered). The bar says `2 of N`, `1 of N`... At the last match `Enter` wraps to the first. |
+| 5 | Click `<` and `>`; hover them | Same as Shift+Enter / Enter. Tooltips name the shortcuts. |
+| 6 | Click `Wrap` to turn it off, go past the last match | The search stops and the bar says `No more results`; the selection stays on the last match. Clicking `Wrap` again restores wrapping. |
+| 7 | Type something that is not in the text | `No results`. The earlier selection is not lost. |
+| 8 | Click `Aa` (match case) | Matches change to exact-case ones and the count updates. |
+| 9 | Click elsewhere in the text | The bar changes to `N results` (the selection is no longer a match); the next `Enter` / `F3` continues from where you clicked. |
+| 10 | Press `Esc` (in the Find field) | The bar closes, the caret is back in the text with the match still selected, and the highlight disappears. |
+| 11 | With the bar closed press `F3` and `Shift+F3` | They use the last text. If nothing is found, the bar appears with "No results". With nothing ever searched, the bar opens. |
+| 12 | Select a word, press `Ctrl+F` | The word is put into the Find field (only one-line selections of up to 256 characters). |
+| 13 | Press `Ctrl+H` | The Replace row appears under Find: a Replace field, **Replace** and **Replace All**. Both buttons are greyed out while the Find field is empty. |
+| 14 | Enter text to find and a replacement, click **Replace** | The current match is replaced and the next one is selected. Clicking again continues. `Enter` in the Replace field does the same. |
+| 15 | With the caret somewhere that is not a match, click **Replace** | Nothing is replaced; it just selects the next match. |
+| 16 | Click **Replace All** | Every match is replaced; the bar says `N replaced`; the tab gets ` *`. |
+| 17 | Press `Ctrl+Z` once | The whole Replace All is undone in a single step. |
+| 18 | Replace `a` with `aa`, then Replace All | It does not loop or re-replace the new text. |
+| 19 | Replace All with an empty Replace field | The matches are deleted. |
+| 20 | Switch to the other tab with the bar open | The bar searches that tab (count updates) and the old tab's highlight is gone. Replace All only changes the active tab. |
+| 21 | Try a text with more than 100,000 matches (for example one letter in a large file) | The bar says `100,000+ results` and searching still works. |
+| 22 | Try a file of several MB and type in the Find field | Typing stays responsive; counts may update a moment after you stop. |
+| 23 | Right after launching, start typing without clicking | The text goes into the editor (the hidden bar does not take the focus). |
+| 24 | Known gaps: regex, whole word, highlight all matches, search in all tabs or files | Not available yet (planned for a later version). |
+
 ## Error handling
 
 | # | Steps | Expected |
