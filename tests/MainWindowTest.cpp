@@ -7,6 +7,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QDir>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
@@ -138,8 +139,30 @@ private slots:
     void aWindowWithoutAStoreStillWorksAndSavesNothing();
     void aBrokenSettingsFileStillGivesAWorkingWindow();
 
+    // File > Open Recent
+    void openRecentIsGreyedOutWhileTheListIsEmpty();
+    void openedAndSavedAsFilesAppearNewestFirst();
+    void choosingARecentEntryOpensThatFile();
+    void theListHoldsTenEntriesAndTheTenthUsesZero();
+    void clearRecentFilesEmptiesTheListAndTheMenu();
+    void clearRecentFilesIsUnavailableWhenEmpty();
+    void ampersandsInPathsAreShownLiterally();
+    void aPlainSaveOrAFailedOpenOrANewTabAddsNothing();
+    void theListIsRememberedBetweenRuns();
+    void aWindowWithoutAStoreStillShowsTheListWhileRunning();
+    void clearedListIsRememberedAsEmpty();
+    void aMissingRecentFileIsReportedOnceAndRemoved();
+    void otherEntriesSurviveAMissingOne();
+    void aMissingRecentFileRemovalIsRemembered();
+    void aRecentFileThatCannotBeReadKeepsItsEntry();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
+    static QMenu* subMenu(QMenu* parent, const QString& title);
+    static QMenu* fileMenu(MainWindow& window);
+    // File > Open Recent after "opening" it, so its entries are up to date.
+    static QMenu* recentMenu(MainWindow& window);
+    static QStringList entryTexts(QMenu* menu); // the numbered entries only
     void write(const QString& name, const QByteArray& bytes) const;
     QByteArray read(const QString& name) const;
     void type(MainWindow& window, const QString& text) const;
@@ -1643,6 +1666,338 @@ void MainWindowTest::aBrokenSettingsFileStillGivesAWorkingWindow()
     QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::WidgetWidth); // the default
     window.editor()->insertPlainText(QStringLiteral("still usable"));
     QCOMPARE(window.editor()->toPlainText(), QStringLiteral("still usable"));
+}
+
+// ---- File > Open Recent ---------------------------------------------------------------------
+
+QMenu* MainWindowTest::subMenu(QMenu* parent, const QString& title)
+{
+    for (QAction* action : parent->actions()) {
+        if (action->menu() != nullptr && action->text() == title) {
+            return action->menu();
+        }
+    }
+    return nullptr;
+}
+
+QMenu* MainWindowTest::fileMenu(MainWindow& window)
+{
+    for (QAction* action : window.menuBar()->actions()) {
+        if (action->text() == QStringLiteral("&File")) {
+            return action->menu();
+        }
+    }
+    return nullptr;
+}
+
+QMenu* MainWindowTest::recentMenu(MainWindow& window)
+{
+    QMenu* file = fileMenu(window);
+    emit file->aboutToShow();
+    QMenu* recent = subMenu(file, QStringLiteral("Open &Recent"));
+    if (recent != nullptr && recent->menuAction()->isEnabled()) {
+        emit recent->aboutToShow();
+    }
+    return recent;
+}
+
+QStringList MainWindowTest::entryTexts(QMenu* menu)
+{
+    QStringList texts;
+    for (const QAction* action : menu->actions()) {
+        if (!action->isSeparator() && action->objectName().isEmpty()) {
+            texts.append(action->text());
+        }
+    }
+    return texts;
+}
+
+void MainWindowTest::openRecentIsGreyedOutWhileTheListIsEmpty()
+{
+    MainWindow window(scriptedDialogs());
+    QMenu* recent = recentMenu(window);
+    QVERIFY(recent != nullptr);
+    QVERIFY(!recent->menuAction()->isEnabled());
+}
+
+void MainWindowTest::openedAndSavedAsFilesAppearNewestFirst()
+{
+    write("a.txt", "a");
+    write("b.txt", "b");
+    MainWindow window(scriptedDialogs());
+    window.show();
+
+    m_openAnswer = path("a.txt");
+    window.commands().run("file.open");
+    m_openAnswer = path("b.txt");
+    window.commands().run("file.open");
+    window.commands().run("file.new");
+    window.editor()->insertPlainText(QStringLiteral("x"));
+    m_saveAnswer = path("c.txt");
+    window.commands().run("file.saveAs");
+
+    QMenu* recent = recentMenu(window);
+    QVERIFY(recent->menuAction()->isEnabled());
+    const QStringList texts = entryTexts(recent);
+    QCOMPARE(texts.size(), 3);
+    QVERIFY2(texts.at(0).startsWith(QStringLiteral("&1")), qPrintable(texts.at(0)));
+    QVERIFY2(texts.at(0).endsWith(QDir::toNativeSeparators(path("c.txt"))),
+             qPrintable(texts.at(0)));
+    QVERIFY(texts.at(1).endsWith(QDir::toNativeSeparators(path("b.txt"))));
+    QVERIFY(texts.at(2).endsWith(QDir::toNativeSeparators(path("a.txt"))));
+}
+
+void MainWindowTest::choosingARecentEntryOpensThatFile()
+{
+    write("a.txt", "from a");
+    write("b.txt", "from b");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("a.txt");
+    window.commands().run("file.open");
+    m_openAnswer = path("b.txt");
+    window.commands().run("file.open");
+    QCOMPARE(window.tabCount(), 2);
+    window.commands().run("tab.closeOthers"); // leaves only b.txt open
+    QCOMPARE(window.tabCount(), 1);
+
+    QMenu* recent = recentMenu(window);
+    const QStringList texts = entryTexts(recent);
+    QCOMPARE(texts.size(), 2);
+    QAction* entryForA = nullptr;
+    for (QAction* action : recent->actions()) {
+        if (action->text().endsWith(QDir::toNativeSeparators(path("a.txt")))) {
+            entryForA = action;
+        }
+    }
+    QVERIFY(entryForA != nullptr);
+    entryForA->trigger();
+
+    QCOMPARE(window.tabCount(), 2);
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("from a"));
+    QVERIFY(m_errors.isEmpty());
+    // Using an entry moves it to the top.
+    QVERIFY(
+        entryTexts(recentMenu(window)).first().endsWith(QDir::toNativeSeparators(path("a.txt"))));
+}
+
+void MainWindowTest::theListHoldsTenEntriesAndTheTenthUsesZero()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    for (int i = 1; i <= 12; ++i) {
+        const QString name = QStringLiteral("f%1.txt").arg(i);
+        write(name, "x");
+        m_openAnswer = path(name);
+        window.commands().run("file.open");
+    }
+    const QStringList texts = entryTexts(recentMenu(window));
+    QCOMPARE(texts.size(), 10);
+    QVERIFY2(texts.at(0).startsWith(QStringLiteral("&1  ")), qPrintable(texts.at(0)));
+    QVERIFY(texts.at(0).endsWith(QStringLiteral("f12.txt")));
+    QVERIFY2(texts.at(8).startsWith(QStringLiteral("&9  ")), qPrintable(texts.at(8)));
+    QVERIFY2(texts.at(9).startsWith(QStringLiteral("&0  ")), qPrintable(texts.at(9)));
+    QVERIFY(texts.at(9).endsWith(QStringLiteral("f3.txt"))); // f1 and f2 fell off
+}
+
+void MainWindowTest::clearRecentFilesEmptiesTheListAndTheMenu()
+{
+    write("a.txt", "a");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("a.txt");
+    window.commands().run("file.open");
+    QCOMPARE(entryTexts(recentMenu(window)).size(), 1);
+
+    QVERIFY(window.commands().isEnabled("file.clearRecent"));
+    QVERIFY(window.commands().run("file.clearRecent"));
+
+    QMenu* recent = recentMenu(window);
+    QVERIFY(!recent->menuAction()->isEnabled());
+    emit recent->aboutToShow(); // a greyed-out menu cannot open, but it must not list old files
+    QVERIFY(entryTexts(recent).isEmpty());
+    QCOMPARE(window.tabCount(), 1); // clearing the list does not close anything
+}
+
+void MainWindowTest::clearRecentFilesIsUnavailableWhenEmpty()
+{
+    MainWindow window(scriptedDialogs());
+    QVERIFY(!window.commands().isEnabled("file.clearRecent"));
+    QVERIFY(!window.commands().run("file.clearRecent"));
+}
+
+void MainWindowTest::ampersandsInPathsAreShownLiterally()
+{
+    write("fish&chips.txt", "x");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("fish&chips.txt");
+    window.commands().run("file.open");
+
+    const QStringList texts = entryTexts(recentMenu(window));
+    QCOMPARE(texts.size(), 1);
+    QVERIFY2(texts.at(0).endsWith(QStringLiteral("fish&&chips.txt")), qPrintable(texts.at(0)));
+}
+
+void MainWindowTest::aPlainSaveOrAFailedOpenOrANewTabAddsNothing()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    window.commands().run("file.new");
+    window.editor()->insertPlainText(QStringLiteral("x"));
+    m_saveAnswer.clear(); // the Save As dialog is cancelled
+    window.commands().run("file.save");
+    m_openAnswer = path("missing.txt");
+    window.commands().run("file.open"); // fails and shows an error
+    QVERIFY(!m_errors.isEmpty());
+
+    QVERIFY(!recentMenu(window)->menuAction()->isEnabled());
+}
+
+void MainWindowTest::theListIsRememberedBetweenRuns()
+{
+    write("a.txt", "a");
+    write("b.txt", "b");
+    {
+        scribe::core::SettingsManager settings(path("scribe.ini"));
+        MainWindow first(scriptedDialogs(), &settings);
+        first.show();
+        m_openAnswer = path("a.txt");
+        first.commands().run("file.open");
+        m_openAnswer = path("b.txt");
+        first.commands().run("file.open");
+        QVERIFY(first.close());
+    }
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow second(scriptedDialogs(), &settings);
+    const QStringList texts = entryTexts(recentMenu(second));
+    QCOMPARE(texts.size(), 2);
+    QVERIFY(texts.at(0).endsWith(QDir::toNativeSeparators(path("b.txt"))));
+    QVERIFY(texts.at(1).endsWith(QDir::toNativeSeparators(path("a.txt"))));
+    QCOMPARE(second.tabCount(), 1); // remembering the list does not reopen anything
+}
+
+void MainWindowTest::aWindowWithoutAStoreStillShowsTheListWhileRunning()
+{
+    write("a.txt", "a");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("a.txt");
+    window.commands().run("file.open");
+    QCOMPARE(entryTexts(recentMenu(window)).size(), 1);
+}
+
+void MainWindowTest::clearedListIsRememberedAsEmpty()
+{
+    write("a.txt", "a");
+    {
+        scribe::core::SettingsManager settings(path("scribe.ini"));
+        MainWindow first(scriptedDialogs(), &settings);
+        first.show();
+        m_openAnswer = path("a.txt");
+        first.commands().run("file.open");
+        first.commands().run("file.clearRecent");
+        QVERIFY(first.close());
+    }
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow second(scriptedDialogs(), &settings);
+    QVERIFY(!recentMenu(second)->menuAction()->isEnabled());
+}
+
+namespace
+{
+
+QAction* entryEndingWith(QMenu* menu, const QString& path)
+{
+    for (QAction* action : menu->actions()) {
+        if (action->text().endsWith(QDir::toNativeSeparators(path))) {
+            return action;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void MainWindowTest::aMissingRecentFileIsReportedOnceAndRemoved()
+{
+    write("gone.txt", "x");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("gone.txt");
+    window.commands().run("file.open");
+    window.commands().run("tab.closeAll");
+    QVERIFY(QFile::remove(path("gone.txt")));
+
+    QAction* entry = entryEndingWith(recentMenu(window), path("gone.txt"));
+    QVERIFY(entry != nullptr);
+    entry->trigger();
+
+    QCOMPARE(m_errors.size(), 1); // one message, not an open error on top of it
+    QVERIFY2(m_errors.first().contains(QStringLiteral("no longer exists")),
+             qPrintable(m_errors.first()));
+    QVERIFY(m_errors.first().contains(QDir::toNativeSeparators(path("gone.txt"))));
+    QCOMPARE(window.tabCount(), 1);
+    QVERIFY(!window.editor()->fileDocument().filePath().contains(QStringLiteral("gone")));
+    QVERIFY(!recentMenu(window)->menuAction()->isEnabled()); // and it is gone from the list
+}
+
+void MainWindowTest::otherEntriesSurviveAMissingOne()
+{
+    write("keep.txt", "k");
+    write("gone.txt", "g");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("keep.txt");
+    window.commands().run("file.open");
+    m_openAnswer = path("gone.txt");
+    window.commands().run("file.open");
+    QVERIFY(QFile::remove(path("gone.txt")));
+
+    entryEndingWith(recentMenu(window), path("gone.txt"))->trigger();
+
+    const QStringList texts = entryTexts(recentMenu(window));
+    QCOMPARE(texts.size(), 1);
+    QVERIFY(texts.first().endsWith(QDir::toNativeSeparators(path("keep.txt"))));
+}
+
+void MainWindowTest::aMissingRecentFileRemovalIsRemembered()
+{
+    write("gone.txt", "g");
+    {
+        scribe::core::SettingsManager settings(path("scribe.ini"));
+        MainWindow first(scriptedDialogs(), &settings);
+        first.show();
+        m_openAnswer = path("gone.txt");
+        first.commands().run("file.open");
+        QVERIFY(QFile::remove(path("gone.txt")));
+        entryEndingWith(recentMenu(first), path("gone.txt"))->trigger();
+        QVERIFY(first.close());
+    }
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow second(scriptedDialogs(), &settings);
+    QVERIFY(!recentMenu(second)->menuAction()->isEnabled());
+}
+
+void MainWindowTest::aRecentFileThatCannotBeReadKeepsItsEntry()
+{
+    // A folder where a file used to be: it exists, but cannot be opened as text. This is a problem
+    // the file might not have later, so the entry stays and the normal open error is shown.
+    write("thing.txt", "x");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("thing.txt");
+    window.commands().run("file.open");
+    window.commands().run("tab.closeAll");
+    QVERIFY(QFile::remove(path("thing.txt")));
+    QVERIFY(QDir(m_dir->path()).mkdir(QStringLiteral("thing.txt")));
+
+    entryEndingWith(recentMenu(window), path("thing.txt"))->trigger();
+
+    QCOMPARE(m_errors.size(), 1);
+    QVERIFY2(!m_errors.first().contains(QStringLiteral("no longer exists")),
+             qPrintable(m_errors.first()));
+    QVERIFY(recentMenu(window)->menuAction()->isEnabled()); // still listed
 }
 
 QTEST_MAIN(MainWindowTest)

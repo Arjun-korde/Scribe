@@ -70,6 +70,7 @@ core::IoResult EditorTabs::openFile(const QString& path)
 {
     if (const int existing = indexOfPath(path); existing >= 0) {
         setCurrentIndex(existing);
+        emit fileUsed(path);
         return {};
     }
 
@@ -82,6 +83,7 @@ core::IoResult EditorTabs::openFile(const QString& path)
     const core::IoResult result = editor->openFile(path);
     if (result.ok()) {
         adopt(std::move(editor));
+        emit fileUsed(path); // the editor loaded the file before it was connected
     }
     return result;
 }
@@ -245,6 +247,7 @@ EditorWidget* EditorTabs::adopt(std::unique_ptr<EditorWidget> editor)
 
     applyViewSettings(*raw);
     connect(raw, &EditorWidget::zoomRequested, this, &EditorTabs::zoomBy);
+    connect(raw, &EditorWidget::fileUsed, this, &EditorTabs::fileUsed);
     connect(raw, &EditorWidget::stateChanged, this, [this, raw] {
         refreshTab(raw);
         if (raw == currentEditor()) {

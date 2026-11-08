@@ -86,6 +86,11 @@ public:
     void resetZoom();
 
 signals:
+    /// A file was opened in a tab (including a switch to a tab that already had it) or a tab was
+    /// saved under a new name with Save As. Emitted only on success, never for Untitled tabs, a
+    /// failed open or a plain Save. Used for the recent files list.
+    void fileUsed(const QString& path);
+
     /// Emitted when word wrap, the font or the zoom changes.
     void viewSettingsChanged();
 

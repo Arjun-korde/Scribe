@@ -51,7 +51,7 @@ Effort assumes part-time work and can be adjusted.
 - [x] New, Open, Save, Save As, Exit
 - [x] Unsaved-changes prompt (Save / Don't Save / Cancel)
 - [x] Drag and drop to open files
-- [ ] Recent files list
+- [x] Recent files list
 - [ ] Print and Page Setup **[stretch]**
 
 **Tabs**
@@ -79,7 +79,7 @@ Effort assumes part-time work and can be adjusted.
 - [x] Encoding detection and handling: UTF-8 (with and without BOM), UTF-16 LE/BE, ANSI
 - [x] Line-ending detection and preservation: CRLF, LF, CR
 - [x] Convert line endings; Save with a different encoding
-- [ ] Core architecture: `Document`, `IDocumentBackend` (in-memory implementation), `CommandRegistry` (done), `SettingsManager` (done)
+- [x] Core architecture: `Document`, `IDocumentBackend` (in-memory implementation), `CommandRegistry` (done), `SettingsManager` (done)
 
 **Tests:** encoding detection, line-ending detection and conversion, document load/save round trips.
 

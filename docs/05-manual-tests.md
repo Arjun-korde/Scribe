@@ -223,6 +223,28 @@ The settings file is `%APPDATA%\Scribe\scribe.ini` (paste that into the Explorer
 | 20 | Change the display scaling or resolution to a smaller one with a large window saved, start Scribe | The window is shrunk to fit and its title bar is on the screen. |
 | 21 | Edit `scribe.ini`: `[window]` with `width=50`, or `x=banana`, or only `x` and `y` | Scribe starts with the default window size and position; the rest of the settings still apply. |
 
+## Recent files
+
+The list is kept in `scribe.ini` under `[recent]`.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | With no `scribe.ini`, open the File menu | **Open Recent** is greyed out. |
+| 2 | Open `a.txt`, then `b.txt` (File > Open), then File > Open Recent | Two entries, `b.txt` first (`1  C:\...\b.txt`), `a.txt` second. Full paths use backslashes. |
+| 3 | Create a new document, type something and Save As `c.txt` | `c.txt` is now at the top of the list. |
+| 4 | Press Ctrl+S on an already saved file, press Ctrl+N, cancel a Save As, and try to open a missing file by typing its name | The list does not change. |
+| 5 | Choose an entry from the list | That file opens in a tab (or its tab is selected if already open) and the entry moves to the top. |
+| 6 | Drag a file from Explorer into the window | It opens and appears at the top of the list. |
+| 7 | Open 12 different files | The list shows 10 entries, the oldest two are gone. Entries use `1`-`9` and `0` as shortcut keys: with the menu open, press `0` to open the tenth. |
+| 8 | Open a file whose name contains `&` (for example `fish&chips.txt`) | The entry shows the `&` as is (`fish&chips.txt`). |
+| 9 | Close and restart Scribe, then open the list | The same entries are there, in the same order. Nothing is reopened automatically. |
+| 10 | File > Open Recent > **Clear Recent Files** | The list is emptied, Open Recent is greyed out, open tabs are untouched, and after a restart it is still empty. |
+| 11 | Delete (or rename) a file that is in the list, then choose it | One message says the file no longer exists and was removed from the list. No second error appears. Reopen the menu: the entry is gone and the others remain. |
+| 12 | Replace a listed file with a folder of the same name (or lock it so it cannot be read) and choose it | The usual "Could not open" error appears and the entry stays in the list. |
+| 13 | Put a file on a USB drive or network share, open it, disconnect the drive, choose the entry | Treated like a missing file (row 11): one message, entry removed. |
+| 14 | Edit `scribe.ini` by hand: add an empty entry, a relative path and a repeated path to `[recent]` | Scribe starts normally; the bad entries are not shown and the repeat appears once. |
+| 15 | Open a file by two different spellings (for example `C:\a\..\b.txt` and `c:\B.TXT`) | It is listed once. |
+
 ## Error handling
 
 | # | Steps | Expected |

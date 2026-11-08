@@ -31,6 +31,11 @@ private slots:
     void openingAnOpenFileSwitchesToItAndKeepsEdits();
     void failedOpenAddsNoTab();
     void failedOpenIntoUntouchedTabKeepsIt();
+    void fileUsedIsEmittedForOpensInEveryKindOfTab();
+    void fileUsedIsNotEmittedWhenOpeningFails();
+    void fileUsedIsEmittedForSaveAsButNotForSave();
+    void fileUsedIsEmittedForSaveAsInEveryTab();
+    void fileUsedIsNotEmittedForNewTabs();
     void closeTabRemovesIt();
     void closingTheLastTabLeavesAFreshUntitled();
     void closeOthersKeepsOnlyTheChosenTab();
@@ -189,6 +194,76 @@ void EditorTabsTest::failedOpenIntoUntouchedTabKeepsIt()
 
     QCOMPARE(tabs.count(), 1);
     QCOMPARE(tabs.tabText(0), QStringLiteral("Untitled"));
+}
+
+void EditorTabsTest::fileUsedIsEmittedForOpensInEveryKindOfTab()
+{
+    EditorTabs tabs;
+    QSignalSpy used(&tabs, &EditorTabs::fileUsed);
+
+    const QString first = write("a.txt", "one");
+    QVERIFY(tabs.openFile(first).ok()); // reuses the untouched Untitled tab
+    QCOMPARE(used.count(), 1);
+    QCOMPARE(used.at(0).at(0).toString(), first);
+
+    const QString second = write("b.txt", "two");
+    QVERIFY(tabs.openFile(second).ok()); // needs a new tab
+    QCOMPARE(used.count(), 2);
+    QCOMPARE(used.at(1).at(0).toString(), second);
+    QCOMPARE(tabs.count(), 2);
+
+    QVERIFY(tabs.openFile(first).ok()); // switches to the tab that already has it
+    QCOMPARE(used.count(), 3);
+    QCOMPARE(used.at(2).at(0).toString(), first);
+    QCOMPARE(tabs.count(), 2);
+}
+
+void EditorTabsTest::fileUsedIsNotEmittedWhenOpeningFails()
+{
+    EditorTabs tabs;
+    QSignalSpy used(&tabs, &EditorTabs::fileUsed);
+    QVERIFY(!tabs.openFile(path("missing.txt")).ok());
+    tabs.currentEditor()->insertPlainText(QStringLiteral("edits")); // so a new tab would be needed
+    QVERIFY(!tabs.openFile(path("missing.txt")).ok());
+    QCOMPARE(used.count(), 0);
+}
+
+void EditorTabsTest::fileUsedIsEmittedForSaveAsButNotForSave()
+{
+    EditorTabs tabs;
+    QSignalSpy used(&tabs, &EditorTabs::fileUsed);
+    tabs.currentEditor()->insertPlainText(QStringLiteral("text"));
+
+    const QString target = path("saved.txt");
+    QVERIFY(tabs.currentEditor()->saveFileAs(target).ok());
+    QCOMPARE(used.count(), 1);
+    QCOMPARE(used.at(0).at(0).toString(), target);
+
+    tabs.currentEditor()->insertPlainText(QStringLiteral(" more"));
+    QVERIFY(tabs.currentEditor()->saveFile().ok());
+    QCOMPARE(used.count(), 1); // a plain Save is not "using" a file again
+}
+
+void EditorTabsTest::fileUsedIsEmittedForSaveAsInEveryTab()
+{
+    EditorTabs tabs;
+    QVERIFY(tabs.openFile(write("a.txt", "one")).ok());
+    tabs.addEditor(); // a second tab, not the first one
+    QSignalSpy used(&tabs, &EditorTabs::fileUsed);
+
+    const QString target = path("second.txt");
+    QVERIFY(tabs.currentEditor()->saveFileAs(target).ok());
+    QCOMPARE(used.count(), 1);
+    QCOMPARE(used.at(0).at(0).toString(), target);
+}
+
+void EditorTabsTest::fileUsedIsNotEmittedForNewTabs()
+{
+    EditorTabs tabs;
+    QSignalSpy used(&tabs, &EditorTabs::fileUsed);
+    tabs.addEditor();
+    tabs.currentEditor()->newFile();
+    QCOMPARE(used.count(), 0);
 }
 
 void EditorTabsTest::closeTabRemovesIt()

@@ -5,6 +5,11 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-08
+
+Release candidate: the automated tests and checks pass on both presets, but the manual tests in
+`docs/05-manual-tests.md` have not been run yet for this release.
+
 ### Added
 - File menu with New, Open, Save, Save As and Exit (`Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`).
 - Tabs: New and Open add a tab (opening a file that is already open switches to it), `Ctrl+W` closes
@@ -55,6 +60,12 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   damaged or hand-edited file never prevents startup: every bad value just falls back to its
   default, and if the file cannot be written Scribe carries on without saving. The text you search
   for is not remembered.
+- File > Open Recent lists the last 10 files you opened or saved with Save As (newest first, with
+  the keys `1`-`9` and `0`), and Clear Recent Files empties the list. A file counts when it is
+  opened by File > Open, drag and drop or this menu, even if it was already open; a plain Save, a
+  failed open and Untitled tabs do not count. The list is kept in `scribe.ini` like the other
+  settings. Choosing a file that has been moved or deleted shows one message and removes it from
+  the list; a file that exists but cannot be opened shows the usual error and stays listed.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.

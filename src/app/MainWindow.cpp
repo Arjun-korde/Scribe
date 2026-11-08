@@ -9,6 +9,7 @@
 #include "FileCommands.h"
 #include "FindBar.h"
 #include "FindBarPersistence.h"
+#include "RecentFilesTracker.h"
 #include "SearchCommands.h"
 #include "TabCommands.h"
 #include "ViewCommands.h"
@@ -17,6 +18,8 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QDir>
+#include <QFileInfo>
 #include <QKeySequence>
 #include <QMenu>
 #include <QMenuBar>
@@ -77,6 +80,9 @@ MainWindow::MainWindow(FileDialogs dialogs, scribe::core::SettingsManager* setti
             std::make_unique<scribe::app::WindowPlacementPersistence>(*this, *settings);
     }
 
+    // The recently used files, remembered when there is a settings store.
+    m_recent = new scribe::app::RecentFilesTracker(*m_tabs, settings, this);
+
     registerCommands();
     buildMenus();
 
@@ -127,7 +133,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::registerCommands()
 {
-    FileCommands::registerIn(m_commands, *m_controller, *this);
+    FileCommands::registerIn(m_commands, *m_controller, *this, *m_recent);
     EditCommands::registerIn(m_commands, *m_tabs);
     EncodingCommands::registerIn(m_commands, *m_controller, *m_tabs);
 
@@ -162,6 +168,9 @@ void MainWindow::buildMenus()
     addCommandAction(fileMenu, FileCommands::kOpen);
     addCommandAction(fileMenu, FileCommands::kSave);
     addCommandAction(fileMenu, FileCommands::kSaveAs);
+    fileMenu->addSeparator();
+    m_recentMenu = fileMenu->addMenu(tr("Open &Recent"));
+    connect(m_recentMenu, &QMenu::aboutToShow, this, &MainWindow::fillRecentMenu);
     fileMenu->addSeparator();
     addCommandAction(fileMenu, TabCommands::kClose);
     addCommandAction(fileMenu, TabCommands::kCloseOthers);
@@ -243,10 +252,56 @@ void MainWindow::showChoices(QWidget* anchor, const QList<QAction*>& actions)
     menu->popup(position);
 }
 
+void MainWindow::fillRecentMenu()
+{
+    // Rebuilt each time it opens, so it always matches the list. The entries are not commands:
+    // there can be any number of them and each one is just "open this path".
+    m_recentMenu->clear();
+
+    int number = 1;
+    for (const QString& path : m_recent->paths()) {
+        // 1 to 9 are reachable with that digit; the tenth with 0. A '&' in a name is doubled so
+        // that it is shown, not taken as a mnemonic.
+        const QString digit = number < 10 ? QString::number(number) : QStringLiteral("0");
+        QString shown = QDir::toNativeSeparators(path);
+        shown.replace(QLatin1Char('&'), QStringLiteral("&&"));
+        shown = m_recentMenu->fontMetrics().elidedText(shown, Qt::ElideMiddle, 600);
+
+        QAction* action = m_recentMenu->addAction(QStringLiteral("&%1  %2").arg(digit, shown));
+        action->setToolTip(QDir::toNativeSeparators(path));
+        connect(action, &QAction::triggered, this, [this, path] { openRecent(path); });
+        ++number;
+    }
+
+    m_recentMenu->addSeparator();
+    addCommandAction(m_recentMenu, FileCommands::kClearRecent)
+        ->setEnabled(m_commands.isEnabled(FileCommands::kClearRecent));
+}
+
+void MainWindow::openRecent(const QString& path)
+{
+    // A file that was moved or deleted since it was used is reported once and forgotten, so the
+    // entry does not keep failing. Any other problem (no permission, a locked file) is left to
+    // the normal open, which explains it and keeps the entry: the file may work later.
+    if (!QFileInfo::exists(path)) {
+        m_recent->remove(path);
+        if (m_dialogs.showError) {
+            m_dialogs.showError(
+                this, tr("Scribe"),
+                tr("\"%1\" no longer exists. It was removed from the recent files list.")
+                    .arg(QDir::toNativeSeparators(path)));
+        }
+        return;
+    }
+    m_controller->openFiles({path});
+}
+
 void MainWindow::refreshMenuState(QMenu* menu)
 {
     for (QAction* action : menu->actions()) {
-        if (!action->isSeparator()) {
+        if (action == m_recentMenu->menuAction()) {
+            action->setEnabled(!m_recent->isEmpty()); // nothing to open: greyed out
+        } else if (!action->isSeparator()) {
             action->setEnabled(m_commands.isEnabled(action->objectName()));
             if (action->isCheckable()) {
                 action->setChecked(m_commands.isChecked(action->objectName()));

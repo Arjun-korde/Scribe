@@ -14,6 +14,8 @@ add_library(scribe_ui STATIC
     EncodingCommands.cpp
     WindowPlacementPersistence.h
     WindowPlacementPersistence.cpp
+    RecentFilesTracker.h
+    RecentFilesTracker.cpp
 )
 
 target_include_directories(scribe_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
