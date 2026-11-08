@@ -22,6 +22,22 @@
 
 using scribe::editor::EditorWidget;
 
+namespace
+{
+
+// Menus are found by their title, so adding a menu does not renumber the others.
+QMenu* menuTitled(const MainWindow& window, const QString& title)
+{
+    for (QMenu* menu : window.findChildren<QMenu*>()) {
+        if (menu->title() == title) {
+            return menu;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
 class MainWindowTest : public QObject
 {
     Q_OBJECT
@@ -87,6 +103,15 @@ private slots:
     void choosingFromTheStatusBarPopupChangesTheDocument();
     void statusBarPopupsReuseTheMenuActions();
 
+    void searchMenuHasGoToLineWithCtrlG();
+    void goToLineAsksWithTheCurrentLineAndLineCountThenMovesTheCaret();
+    void cancellingGoToLineKeepsTheCaret();
+    void goToLineUpdatesTheStatusBar();
+    void clickingTheLineColumnSegmentOpensGoToLine();
+    void realCtrlGOpensGoToLine();
+    void goToLineIsUnavailableWithoutADialog();
+    void goToLineActsOnTheActiveTab();
+
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
     void write(const QString& name, const QByteArray& bytes) const;
@@ -105,6 +130,8 @@ private:
     QStringList m_promptedFor;
     std::optional<QFont> m_fontAnswer; // what the scripted font dialog returns
     QList<QFont> m_fontDialogOpenedWith;
+    std::optional<int> m_lineAnswer;              // what the scripted Go To Line dialog returns
+    QList<QPair<int, int>> m_lineDialogAskedWith; // (current line, line count) per call
 
     std::unique_ptr<QTemporaryDir> m_dir;
 };
@@ -122,6 +149,8 @@ void MainWindowTest::init()
     m_promptedFor.clear();
     m_fontAnswer.reset();
     m_fontDialogOpenedWith.clear();
+    m_lineAnswer.reset();
+    m_lineDialogAskedWith.clear();
 }
 
 FileDialogs MainWindowTest::scriptedDialogs()
@@ -145,6 +174,10 @@ FileDialogs MainWindowTest::scriptedDialogs()
     dialogs.chooseFont = [this](QWidget*, const QFont& current) {
         m_fontDialogOpenedWith.append(current);
         return m_fontAnswer;
+    };
+    dialogs.askLineNumber = [this](QWidget*, int currentLine, int lineCount) {
+        m_lineDialogAskedWith.append({currentLine, lineCount});
+        return m_lineAnswer;
     };
     return dialogs;
 }
@@ -180,11 +213,12 @@ void MainWindowTest::fileMenuIsBuiltFromRegisteredCommands()
     MainWindow window(scriptedDialogs());
 
     const QList<QAction*> menus = window.menuBar()->actions();
-    QCOMPARE(menus.size(), 4);
+    QCOMPARE(menus.size(), 5);
     QCOMPARE(menus.at(0)->text(), QStringLiteral("&File"));
     QCOMPARE(menus.at(1)->text(), QStringLiteral("&Edit"));
-    QCOMPARE(menus.at(2)->text(), QStringLiteral("&View"));
-    QCOMPARE(menus.at(3)->text(), QStringLiteral("En&coding"));
+    QCOMPARE(menus.at(2)->text(), QStringLiteral("&Search"));
+    QCOMPARE(menus.at(3)->text(), QStringLiteral("&View"));
+    QCOMPARE(menus.at(4)->text(), QStringLiteral("En&coding"));
 
     // Menu entries must be the registry's commands, with the registry's shortcuts.
     const QStringList ids = {
@@ -593,7 +627,8 @@ void MainWindowTest::closeTabCommandAsksAboutThatTab()
 void MainWindowTest::editMenuEntriesAreAvailableOnlyWhenTheyCanRun()
 {
     MainWindow window(scriptedDialogs());
-    QMenu* editMenu = window.findChildren<QMenu*>().at(1); // File, Edit, View
+    QMenu* editMenu = menuTitled(window, "&Edit");
+    QVERIFY(editMenu != nullptr);
     QCOMPARE(editMenu->title(), QStringLiteral("&Edit"));
     const auto action = [&](const char* id) { return window.findChild<QAction*>(id); };
 
@@ -730,7 +765,8 @@ void MainWindowTest::viewMenuHasTheViewCommandsWithShortcuts()
 void MainWindowTest::viewMenuChecksFollowWordWrapAndStatusBar()
 {
     MainWindow window(scriptedDialogs());
-    QMenu* viewMenu = window.findChildren<QMenu*>().at(2); // File, Edit, View
+    QMenu* viewMenu = menuTitled(window, "&View");
+    QVERIFY(viewMenu != nullptr);
     QCOMPARE(viewMenu->title(), QStringLiteral("&View"));
     const auto action = [&](const char* id) { return window.findChild<QAction*>(id); };
 
@@ -830,7 +866,8 @@ void MainWindowTest::fontMenuEntryIsUnavailableWithoutADialog()
     FileDialogs dialogs = scriptedDialogs();
     dialogs.chooseFont = nullptr;
     MainWindow window(dialogs);
-    QMenu* viewMenu = window.findChildren<QMenu*>().at(2);
+    QMenu* viewMenu = menuTitled(window, "&View");
+    QVERIFY(viewMenu != nullptr);
 
     emit viewMenu->aboutToShow();
     QVERIFY(!window.findChild<QAction*>("view.font")->isEnabled());
@@ -865,7 +902,8 @@ void MainWindowTest::zoomResetShortcutWorksAfterTheMenuHasBeenOpenedAtOneHundred
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
     const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
-    QMenu* viewMenu = window.findChildren<QMenu*>().at(2);
+    QMenu* viewMenu = menuTitled(window, "&View");
+    QVERIFY(viewMenu != nullptr);
 
     // At 100% "Restore Default Zoom" is unavailable, so the open menu shows it greyed out...
     emit viewMenu->aboutToShow();
@@ -922,7 +960,8 @@ QStringList ids(const QList<QAction*>& actions)
 void MainWindowTest::encodingMenuHasEveryEncodingAndLineEnding()
 {
     MainWindow window(scriptedDialogs());
-    QMenu* menu = window.findChildren<QMenu*>().at(3); // File, Edit, View, Encoding
+    QMenu* menu = menuTitled(window, "En&coding");
+    QVERIFY(menu != nullptr);
     QCOMPARE(menu->title(), QStringLiteral("En&coding"));
 
     QCOMPARE(ids(menu->actions()),
@@ -944,7 +983,8 @@ void MainWindowTest::encodingMenuHasEveryEncodingAndLineEnding()
 void MainWindowTest::encodingMenuChecksFollowTheActiveDocument()
 {
     MainWindow window(scriptedDialogs());
-    QMenu* menu = window.findChildren<QMenu*>().at(3);
+    QMenu* menu = menuTitled(window, "En&coding");
+    QVERIFY(menu != nullptr);
     const auto checked = [&] {
         emit menu->aboutToShow();
         QStringList result;
@@ -1087,6 +1127,136 @@ void MainWindowTest::statusBarPopupsReuseTheMenuActions()
     QVERIFY(window.findChild<QAction*>("encoding.ansi") != nullptr);
     window.findChild<QAction*>("encoding.ansi")->trigger(); // still works after the pop-ups
     QVERIFY(window.findChild<QAction*>("encoding.ansi")->isChecked());
+}
+
+namespace
+{
+
+QString hundredLines(int count)
+{
+    QStringList lines;
+    for (int i = 1; i <= count; ++i) {
+        lines << QStringLiteral("line %1").arg(i);
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
+} // namespace
+
+void MainWindowTest::searchMenuHasGoToLineWithCtrlG()
+{
+    MainWindow window(scriptedDialogs());
+    QMenu* menu = menuTitled(window, "&Search");
+    QVERIFY(menu != nullptr);
+
+    QCOMPARE(ids(menu->actions()), (QStringList{"search.goToLine"}));
+    const QAction* action = window.findChild<QAction*>("search.goToLine");
+    QVERIFY(action != nullptr);
+    QCOMPARE(action->shortcut(), QKeySequence(QStringLiteral("Ctrl+G")));
+    QCOMPARE(action->text(), QStringLiteral("&Go To Line..."));
+}
+
+void MainWindowTest::goToLineAsksWithTheCurrentLineAndLineCountThenMovesTheCaret()
+{
+    MainWindow window(scriptedDialogs());
+    window.editor()->setPlainText(hundredLines(300));
+    window.editor()->goToLine(12);
+    m_lineAnswer = 250;
+
+    window.findChild<QAction*>("search.goToLine")->trigger();
+
+    QCOMPARE(m_lineDialogAskedWith.size(), 1);
+    QCOMPARE(m_lineDialogAskedWith.first(), (QPair<int, int>(12, 300)));
+    QCOMPARE(window.editor()->currentLine(), 250);
+    QCOMPARE(window.editor()->textCursor().positionInBlock(), 0);
+}
+
+void MainWindowTest::cancellingGoToLineKeepsTheCaret()
+{
+    MainWindow window(scriptedDialogs());
+    window.editor()->setPlainText(hundredLines(50));
+    window.editor()->goToLine(7);
+    m_lineAnswer = std::nullopt;
+
+    window.commands().run("search.goToLine");
+
+    QCOMPARE(m_lineDialogAskedWith.size(), 1);
+    QCOMPARE(window.editor()->currentLine(), 7);
+}
+
+void MainWindowTest::goToLineUpdatesTheStatusBar()
+{
+    MainWindow window(scriptedDialogs());
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    window.editor()->setPlainText(hundredLines(300));
+    m_lineAnswer = 120;
+
+    window.commands().run("search.goToLine");
+
+    QCOMPARE(bar->position(), QStringLiteral("Ln 120, Col 1"));
+}
+
+void MainWindowTest::clickingTheLineColumnSegmentOpensGoToLine()
+{
+    MainWindow window(scriptedDialogs());
+    const auto* bar = window.findChild<scribe::editor::EditorStatusBar*>();
+    window.editor()->setPlainText(hundredLines(80));
+    m_lineAnswer = 33;
+
+    statusButton(window, "Cursor position")->click();
+
+    QCOMPARE(m_lineDialogAskedWith.size(), 1);
+    QCOMPARE(m_lineDialogAskedWith.first().second, 80);
+    QCOMPARE(window.editor()->currentLine(), 33);
+    QCOMPARE(bar->position(), QStringLiteral("Ln 33, Col 1"));
+}
+
+void MainWindowTest::realCtrlGOpensGoToLine()
+{
+    MainWindow window(scriptedDialogs());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    window.editor()->setPlainText(hundredLines(40));
+    m_lineAnswer = 20;
+
+    QTest::keyClick(window.editor(), Qt::Key_G, Qt::ControlModifier);
+
+    QCOMPARE(m_lineDialogAskedWith.size(), 1);
+    QCOMPARE(window.editor()->currentLine(), 20);
+    QVERIFY(window.editor()->toPlainText().contains(QStringLiteral("line 20"))); // no "g" typed
+    QVERIFY(!window.editor()->toPlainText().contains(QLatin1Char('g')));
+}
+
+void MainWindowTest::goToLineIsUnavailableWithoutADialog()
+{
+    FileDialogs dialogs = scriptedDialogs();
+    dialogs.askLineNumber = nullptr;
+    MainWindow window(dialogs);
+    QMenu* menu = menuTitled(window, "&Search");
+    QVERIFY(menu != nullptr);
+
+    emit menu->aboutToShow();
+    QVERIFY(!window.findChild<QAction*>("search.goToLine")->isEnabled());
+
+    statusButton(window, "Cursor position")->click(); // must not crash or do anything
+    QVERIFY(m_lineDialogAskedWith.isEmpty());
+}
+
+void MainWindowTest::goToLineActsOnTheActiveTab()
+{
+    MainWindow window(scriptedDialogs());
+    window.editor()->setPlainText(hundredLines(10));
+    window.editor()->goToLine(4); // this tab's caret, which must stay put
+    window.commands().run("file.new");
+    window.editor()->setPlainText(hundredLines(500));
+    m_lineAnswer = 400;
+
+    window.commands().run("search.goToLine");
+
+    QCOMPARE(m_lineDialogAskedWith.first().second, 500); // the second tab's line count
+    QCOMPARE(window.editor()->currentLine(), 400);
+    window.commands().run("tab.previous");
+    QCOMPARE(window.editor()->currentLine(), 4); // the other tab kept its own caret
 }
 
 QTEST_MAIN(MainWindowTest)

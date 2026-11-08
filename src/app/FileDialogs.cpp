@@ -1,5 +1,7 @@
 #include "FileDialogs.h"
 
+#include "GoToLineDialog.h"
+
 #include <QCoreApplication>
 #include <QFileDialog>
 #include <QFontDialog>
@@ -61,6 +63,11 @@ FileDialogs defaultFileDialogs()
         bool accepted = false;
         const QFont font = QFontDialog::getFont(&accepted, current, parent, tr("Font"));
         return accepted ? std::optional<QFont>(font) : std::nullopt;
+    };
+    dialogs.askLineNumber = [](QWidget* parent, int currentLine,
+                               int lineCount) -> std::optional<int> {
+        GoToLineDialog dialog(currentLine, lineCount, parent);
+        return dialog.exec() == QDialog::Accepted ? dialog.line() : std::nullopt;
     };
     return dialogs;
 }
