@@ -6,6 +6,10 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 ## [Unreleased]
 
 ### Changed
+- Menus follow the Figma design: rounded panels with an outline and shadow, 28 px rows, the shortcut
+  muted on the right, a rounded hover fill, faded disabled rows, thin separators, and check marks and
+  submenu arrows in the same style. This applies to the menu bar, Open Recent, and the pop-ups from
+  the status bar.
 - The main window follows the Figma design: light and dark themes that follow the Windows setting
   (and change while the app runs), a tab strip with left-aligned names, a muted close button, hover
   states and a `+` button, a line-number gutter with a highlighted current line, and a status bar

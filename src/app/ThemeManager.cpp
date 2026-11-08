@@ -1,5 +1,7 @@
 #include "ThemeManager.h"
 
+#include "MenuStyle.h"
+
 #include <QApplication>
 #include <QStyleHints>
 
@@ -9,6 +11,10 @@ namespace scribe::app
 ThemeManager::ThemeManager(QApplication& app)
     : m_app(app)
 {
+    // Menus are painted by our style, on top of the style Windows gave us. Set before the palette,
+    // because choosing a style resets the palette.
+    app.setStyle(new MenuStyle(app.style()->name()));
+
     const QStyleHints* hints = app.styleHints();
     connect(hints, &QStyleHints::colorSchemeChanged, this, &ThemeManager::follow);
     follow(hints->colorScheme());

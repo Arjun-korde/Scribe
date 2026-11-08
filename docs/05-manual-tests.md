@@ -264,6 +264,25 @@ Compare the running window with the frames `Main Window / Light` and `Main Windo
 | 11 | Zoom in and out (`Ctrl`+wheel) | Numbers, text and band scale together and stay aligned. |
 | 12 | Look at the status bar | `Ln, Col` and the character count on the left. Encoding, line ending and zoom on the right. Encoding and line ending highlight on hover and still open their menus. |
 
+## Menus look (Figma "Editor Context Menu")
+
+Every menu uses the design of the Editor Context Menu frame (also in `Menus, states and dialogs`): the menu bar drop-downs, and the pop-ups that open from the Encoding and line ending segments of the status bar. Check in light and dark.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Open File, Edit, Search, View and Encoding | Each is a panel with a 1 px outline, rounded corners (Windows 11) and a soft shadow. Rows are 28 px tall with 12 px side padding. The panel is at least 270 px wide. |
+| 2 | Look at a row with a shortcut (Edit > Paste) | The name is on the left in the main text color, the shortcut on the right, smaller and muted. |
+| 3 | Move the mouse over rows, then use the arrow keys | The row under the mouse or the keyboard gets the rounded hover fill. Only one row at a time. |
+| 4 | Open Edit with nothing selected | Cut, Copy and Delete are faded (40%), do not get the hover fill, and cannot be chosen. |
+| 5 | Look at the separators | A 1 px line in the outline color, with space above and below. The row spacing stays even around them. |
+| 6 | Open View | Word Wrap and Status Bar show a check mark when on, in a column to the left. All rows of that menu are indented by the same amount. Turn one off and reopen: the mark is gone. |
+| 7 | Open Encoding | The chosen encoding and the chosen line ending have a check mark. |
+| 8 | File > Open Recent | The row has an arrow on the right. The submenu opens next to it in the same design. A long path does not run over the arrow. |
+| 9 | Press `Alt`, then `F` | The menu opens and the mnemonic letters are underlined. Without `Alt` they are not underlined. |
+| 10 | Click the encoding and the line ending in the status bar | The pop-up opens above the segment in the same design, with the same check marks as the Encoding menu. |
+| 11 | Switch Windows between light and dark with a menu closed, then open one | The menu uses the new colors. |
+| 12 | Open a menu on Windows 10, if available | The same, but the corners are square (Windows 10 does not round pop-ups). |
+
 ## Error handling
 
 | # | Steps | Expected |

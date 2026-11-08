@@ -60,3 +60,4 @@ scribe_add_qt_test(scribe_findbar_persistence_tests FindBarPersistenceTest.cpp s
 scribe_add_qt_test(scribe_window_placement_tests WindowPlacementPersistenceTest.cpp scribe_ui)
 scribe_add_qt_test(scribe_theme_tests ThemeTest.cpp scribe_ui)
 scribe_add_qt_test(scribe_tabstrip_tests TabStripTest.cpp scribe_editor)
+scribe_add_qt_test(scribe_menustyle_tests MenuStyleTest.cpp scribe_ui)
