@@ -12,6 +12,7 @@ add_executable(scribe_gtests
     TextSearchTest.cpp
     SettingsManagerTest.cpp
     WindowPlacementTest.cpp
+    RecentFilesTest.cpp
 )
 target_link_libraries(scribe_gtests PRIVATE scribe_core GTest::gtest GTest::gtest_main)
 add_test(NAME scribe_gtests COMMAND scribe_gtests)
