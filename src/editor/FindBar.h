@@ -88,6 +88,11 @@ public:
     static QString replacedText(qsizetype count, const QLocale& locale = QLocale::system());
     static QString noResultsText();
 
+signals:
+    /// Match case or Wrap around was switched on or off (by the user or by setMatchCase() /
+    /// setWrapAround(), but only when the value really changed).
+    void optionsChanged();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;

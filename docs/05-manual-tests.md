@@ -195,6 +195,34 @@ Use a file with repeated words (for example a few paragraphs mentioning "alpha" 
 | 23 | Right after launching, start typing without clicking | The text goes into the editor (the hidden bar does not take the focus). |
 | 24 | Known gaps: regex, whole word, highlight all matches, search in all tabs or files | Not available yet (planned for a later version). |
 
+## Remembered settings
+
+The settings file is `%APPDATA%\Scribe\scribe.ini` (paste that into the Explorer address bar). Close Scribe before editing it by hand.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Delete (or rename) `scribe.ini`, start Scribe | It starts normally with the defaults (word wrap on, 11 pt Cascadia Mono or Consolas, 100%). Merely starting and closing does **not** create the file. |
+| 2 | Turn Word Wrap off, zoom to 150% (`Ctrl+wheel` or `Ctrl++`), choose another font and size in View > Font..., close Scribe, start it again | Word wrap is still off, the zoom is 150% (also shown in the status bar), and the font and size are the ones chosen. New tabs follow them too. |
+| 3 | Open `scribe.ini` | It is plain text with a `[settings]` section (`version=1`) and a `[view]` section (`wordWrap`, `zoom`, `fontFamily`, `fontSize`, `fontWeight`, `fontItalic`, `statusBar`), a `[find]` section (`matchCase`, `wrapAround`) and, after you move or resize the window, a `[window]` section (`x`, `y`, `width`, `height`, `maximized`). |
+| 4 | In View > Font... pick **Bold Italic** and close and restart | The font is bold and italic again. |
+| 5 | Turn the mouse wheel through ten zoom steps, then quit within a second | The last zoom level is remembered (nothing is lost by quitting quickly). |
+| 6 | Close the window while a change is only a moment old (change the zoom, then press Alt+F4 at once) | The change is saved. |
+| 7 | With Scribe closed, edit `scribe.ini`: set `zoom=banana`, `wordWrap=maybe`, `fontSize=abc` | Scribe starts normally; those three settings are at their defaults and the other settings still apply. |
+| 8 | Set `zoom=9000` or `fontSize=9999` | Scribe starts; the default zoom / size is used (out-of-range values are treated as damage). |
+| 9 | Set `fontFamily=No Such Font` | Scribe starts with the default font family; the saved size, bold and italic still apply. |
+| 10 | Replace the contents of `scribe.ini` with random text, or empty the file | Scribe starts with the defaults and works normally; the next change overwrites the file with valid settings. |
+| 11 | Make the `Scribe` folder read-only (or put a file named `Scribe` where the folder should be), start Scribe, change the zoom | Scribe works normally; the change is simply not saved and there is no error dialog. |
+| 12 | Start two copies of Scribe, change the zoom in one, close both | The file still holds valid settings (the last one to close wins). |
+| 13 | Check `%APPDATA%\Scribe` after uninstalling or deleting the file | Nothing else is created elsewhere (no registry entries). |
+| 14 | Hide the status bar (View > Status Bar), close and restart | The status bar is still hidden and the menu entry is unchecked. Show it again and restart: it is shown. |
+| 15 | Open Find (`Ctrl+F`), tick **Match case**, untick **Wrap around**, close and restart, open Find | Both options are as you left them. The text in the Find box is empty. |
+| 16 | Resize and move the window, close and restart | It opens with the same size and position. |
+| 17 | Maximize the window, close and restart | It opens maximized; un-maximizing gives the size and position it had before maximizing. |
+| 18 | Start and close Scribe at once, without touching the window, with no `scribe.ini` | No file is created. |
+| 19 | On two monitors: put the window on the second one, close it, unplug that monitor (or switch to "first screen only"), start Scribe | The window opens on the remaining screen at its default size, fully visible and reachable. |
+| 20 | Change the display scaling or resolution to a smaller one with a large window saved, start Scribe | The window is shrunk to fit and its title bar is on the screen. |
+| 21 | Edit `scribe.ini`: `[window]` with `width=50`, or `x=banana`, or only `x` and `y` | Scribe starts with the default window size and position; the rest of the settings still apply. |
+
 ## Error handling
 
 | # | Steps | Expected |

@@ -109,8 +109,12 @@ FindBar::FindBar(EditorTabs& tabs, QWidget* parent)
         m_message.clear();
         m_matchesValid = false;
         searchFromOrigin();
+        emit optionsChanged();
     });
-    connect(m_wrap, &QToolButton::toggled, this, [this] { m_message.clear(); });
+    connect(m_wrap, &QToolButton::toggled, this, [this] {
+        m_message.clear();
+        emit optionsChanged();
+    });
     connect(m_previous, &QToolButton::clicked, this, [this] { findPrevious(); });
     connect(m_next, &QToolButton::clicked, this, [this] { findNext(); });
     connect(m_close, &QToolButton::clicked, this, &FindBar::closeBar);

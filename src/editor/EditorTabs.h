@@ -67,7 +67,13 @@ public:
     /// applies the change to all editors and emits viewSettingsChanged() only if something
     /// actually changed.
     [[nodiscard]] const ViewSettings& viewSettings() const { return m_viewSettings; }
+
+    /// Replaces wrapping, font and zoom in one go (for example with saved settings). The zoom is
+    /// clamped. viewSettingsChanged() is emitted once, and only if something actually changed.
+    void setViewSettings(const ViewSettings& settings);
+
     void setWordWrap(bool wrap);
+    void setStatusBarVisible(bool visible);
 
     /// Changes the font family and size; the current zoom stays on top of it.
     void setBaseFont(const QFont& font);

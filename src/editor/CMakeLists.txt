@@ -5,6 +5,10 @@ add_library(scribe_editor STATIC
     EditorTabs.cpp
     ViewSettings.h
     ViewSettings.cpp
+    ViewSettingsStore.h
+    ViewSettingsStore.cpp
+    ViewSettingsPersistence.h
+    ViewSettingsPersistence.cpp
     FileDropFilter.h
     FileDropFilter.cpp
     TabCommands.h
@@ -19,6 +23,8 @@ add_library(scribe_editor STATIC
     EditorSearch.cpp
     FindBar.h
     FindBar.cpp
+    FindBarPersistence.h
+    FindBarPersistence.cpp
     EditorStatusBar.h
     EditorStatusBar.cpp
 )

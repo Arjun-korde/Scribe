@@ -8,9 +8,12 @@
 #include "EncodingCommands.h"
 #include "FileCommands.h"
 #include "FindBar.h"
+#include "FindBarPersistence.h"
 #include "SearchCommands.h"
 #include "TabCommands.h"
 #include "ViewCommands.h"
+#include "ViewSettingsPersistence.h"
+#include "WindowPlacementPersistence.h"
 
 #include <QAction>
 #include <QCloseEvent>
@@ -29,12 +32,25 @@ MainWindow::MainWindow(QWidget* parent)
 {}
 
 MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
+    : MainWindow(std::move(dialogs), nullptr, parent)
+{}
+
+MainWindow::MainWindow(FileDialogs dialogs, scribe::core::SettingsManager* settings,
+                       QWidget* parent)
     : QMainWindow(parent)
     , m_tabs(new scribe::editor::EditorTabs(this))
     , m_dialogs(dialogs) // copied before the controller takes the dialogs
     , m_controller(std::make_unique<DocumentController>(*m_tabs, std::move(dialogs), this))
 {
     resize(900, 600);
+
+    // Load the saved view settings into the tabs before anything else reads them (the status bar
+    // shows the zoom, for example). Without a store the defaults stay and nothing is saved.
+    if (settings != nullptr) {
+        m_viewPersistence =
+            std::make_unique<scribe::editor::ViewSettingsPersistence>(*m_tabs, *settings);
+    }
+
     // The tabs with the find bar under them.
     auto* central = new QWidget(this);
     auto* centralLayout = new QVBoxLayout(central);
@@ -46,6 +62,20 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     setCentralWidget(central);
     m_statusBar = new scribe::editor::EditorStatusBar(*m_tabs, this);
     setStatusBar(m_statusBar);
+
+    // Whether the status bar is shown is one of the shared view settings (so it is remembered like
+    // word wrap and zoom): show or hide the widget now, and again whenever the setting changes.
+    m_statusBar->setVisible(m_tabs->viewSettings().statusBarVisible);
+    connect(m_tabs, &scribe::editor::EditorTabs::viewSettingsChanged, this,
+            [this] { m_statusBar->setVisible(m_tabs->viewSettings().statusBarVisible); });
+
+    // The find options and the window's place: applied now, saved when they change.
+    if (settings != nullptr) {
+        m_findPersistence =
+            std::make_unique<scribe::editor::FindBarPersistence>(*m_findBar, *settings);
+        m_placementPersistence =
+            std::make_unique<scribe::app::WindowPlacementPersistence>(*this, *settings);
+    }
 
     registerCommands();
     buildMenus();
@@ -83,6 +113,12 @@ void MainWindow::closeEvent(QCloseEvent* event)
 {
     // Asks about every modified tab; one Cancel keeps the window open.
     if (m_tabs->closeAllTabs()) {
+        if (m_viewPersistence) {
+            m_viewPersistence->flush(); // do not rely on the destructor running at exit
+        }
+        if (m_placementPersistence) {
+            m_placementPersistence->flush();
+        }
         event->accept();
     } else {
         event->ignore();
@@ -100,7 +136,7 @@ void MainWindow::registerCommands()
     if (m_dialogs.chooseFont) {
         fontChooser = [this](const QFont& current) { return m_dialogs.chooseFont(this, current); };
     }
-    ViewCommands::registerIn(m_commands, *m_tabs, *m_statusBar, fontChooser);
+    ViewCommands::registerIn(m_commands, *m_tabs, fontChooser);
 
     SearchCommands::LineNumberChooser lineChooser;
     if (m_dialogs.askLineNumber) {

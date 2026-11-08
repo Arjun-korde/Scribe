@@ -3,6 +3,7 @@
 #include "EditorStatusBar.h"
 #include "EditorWidget.h"
 #include "FindBar.h"
+#include "SettingsManager.h"
 
 #include <QAction>
 #include <QApplication>
@@ -126,6 +127,16 @@ private slots:
     void replaceAllMarksTheWindowModified();
     void ctrlFTakesTheSelectedTextAsTheQuery();
     void shortcutsDoNotTypeIntoTheText();
+
+    void aWindowWithASettingsStoreStartsWithTheSavedViewSettings();
+    void viewChangesAreSavedWhenTheWindowCloses();
+    void theStatusBarAndFindOptionsAreRemembered();
+    void aSecondWindowStartsWhereTheFirstLeftOff();
+    void theFontChosenInTheDialogIsRemembered();
+    void zoomFromTheMouseWheelIsRemembered();
+    void theStatusBarShowsTheSavedZoomFromTheStart();
+    void aWindowWithoutAStoreStillWorksAndSavesNothing();
+    void aBrokenSettingsFileStillGivesAWorkingWindow();
 
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
@@ -1479,6 +1490,159 @@ void MainWindowTest::shortcutsDoNotTypeIntoTheText()
     QTest::keyClick(window.editor(), Qt::Key_F3, Qt::ShiftModifier);
 
     QVERIFY(window.editor()->toPlainText().isEmpty());
+}
+
+// ---- Remembering the view settings ----------------------------------------------------------
+
+void MainWindowTest::aWindowWithASettingsStoreStartsWithTheSavedViewSettings()
+{
+    QFile file(path("scribe.ini"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("[view]\nwordWrap=false\nzoom=140\nfontSize=14\n");
+    file.close();
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+
+    MainWindow window(scriptedDialogs(), &settings);
+
+    QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::NoWrap);
+    QCOMPARE(window.editor()->font().pointSizeF(), 14.0 * 140 / 100);
+    window.commands().run("file.new"); // and so does a tab opened later
+    QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::NoWrap);
+}
+
+void MainWindowTest::theStatusBarAndFindOptionsAreRemembered()
+{
+    {
+        scribe::core::SettingsManager settings(path("scribe.ini"));
+        MainWindow window(scriptedDialogs(), &settings);
+        window.show();
+        window.commands().run("view.statusBar"); // hide it
+        window.findBar()->setMatchCase(true);
+        window.findBar()->setWrapAround(false);
+        QVERIFY(window.close());
+    }
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow again(scriptedDialogs(), &settings);
+    again.show();
+    QVERIFY(again.statusBar()->isHidden());
+    QVERIFY(!again.commands().isChecked("view.statusBar"));
+    QVERIFY(again.findBar()->matchCase());
+    QVERIFY(!again.findBar()->wrapAround());
+}
+
+void MainWindowTest::viewChangesAreSavedWhenTheWindowCloses()
+{
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow window(scriptedDialogs(), &settings);
+    window.show();
+
+    window.commands().run("view.wordWrap");
+    window.commands().run("view.zoomIn");
+    window.commands().run("view.zoomIn");
+    QVERIFY(window.close()); // closing must not lose a change made just before it
+
+    QFile file(path("scribe.ini"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QString text = QString::fromUtf8(file.readAll());
+    QVERIFY2(text.contains(QStringLiteral("wordWrap=false")), qPrintable(text));
+    QVERIFY2(text.contains(QStringLiteral("zoom=120")), qPrintable(text));
+}
+
+void MainWindowTest::aSecondWindowStartsWhereTheFirstLeftOff()
+{
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    {
+        MainWindow first(scriptedDialogs(), &settings);
+        first.commands().run("view.wordWrap");
+        first.commands().run("view.zoomIn");
+        first.commands().run("view.zoomIn");
+        first.commands().run("view.zoomIn");
+    } // destroyed, as when the program ends
+
+    MainWindow second(scriptedDialogs(), &settings);
+
+    QCOMPARE(second.editor()->lineWrapMode(), QPlainTextEdit::NoWrap);
+    QVERIFY(!second.commands().isChecked("view.wordWrap"));
+    const auto* bar = second.findChild<scribe::editor::EditorStatusBar*>();
+    QCOMPARE(bar->zoom(), QStringLiteral("130%"));
+}
+
+void MainWindowTest::theFontChosenInTheDialogIsRemembered()
+{
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    QFont chosen(QStringLiteral("Courier New"));
+    chosen.setPointSizeF(15.0);
+    chosen.setBold(true);
+    chosen.setItalic(true);
+    {
+        MainWindow first(scriptedDialogs(), &settings);
+        m_fontAnswer = chosen;
+        first.commands().run("view.font");
+    }
+
+    MainWindow second(scriptedDialogs(), &settings);
+
+    QCOMPARE(second.editor()->font().pointSizeF(), 15.0);
+    QVERIFY(second.editor()->font().italic());
+    QVERIFY(second.editor()->font().bold());
+}
+
+void MainWindowTest::zoomFromTheMouseWheelIsRemembered()
+{
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    {
+        MainWindow first(scriptedDialogs(), &settings);
+        QWidget* viewport = first.editor()->viewport();
+        for (int i = 0; i < 5; ++i) { // five notches, one after the other
+            QWheelEvent wheel(QPointF(5, 5), viewport->mapToGlobal(QPointF(5, 5)), QPoint(),
+                              QPoint(0, 120), Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase,
+                              false);
+            QApplication::sendEvent(viewport, &wheel);
+        }
+    }
+
+    MainWindow second(scriptedDialogs(), &settings);
+    const auto* bar = second.findChild<scribe::editor::EditorStatusBar*>();
+    QCOMPARE(bar->zoom(), QStringLiteral("150%"));
+}
+
+void MainWindowTest::theStatusBarShowsTheSavedZoomFromTheStart()
+{
+    QFile file(path("scribe.ini"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("[view]\nzoom=180\n");
+    file.close();
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+
+    MainWindow window(scriptedDialogs(), &settings);
+
+    QCOMPARE(window.findChild<scribe::editor::EditorStatusBar*>()->zoom(), QStringLiteral("180%"));
+}
+
+void MainWindowTest::aWindowWithoutAStoreStillWorksAndSavesNothing()
+{
+    MainWindow window(scriptedDialogs()); // no settings store
+    window.commands().run("view.zoomIn");
+    window.commands().run("view.wordWrap");
+
+    QCOMPARE(window.findChild<scribe::editor::EditorStatusBar*>()->zoom(), QStringLiteral("110%"));
+    QVERIFY(!QFileInfo::exists(path("scribe.ini")));
+}
+
+void MainWindowTest::aBrokenSettingsFileStillGivesAWorkingWindow()
+{
+    QFile file(path("scribe.ini"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("\xFF\xFE garbage \x00\x01 [view\nzoom=banana\nwordWrap=\n=\n[[[");
+    file.close();
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+
+    MainWindow window(scriptedDialogs(), &settings);
+
+    QCOMPARE(window.findChild<scribe::editor::EditorStatusBar*>()->zoom(), QStringLiteral("100%"));
+    QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::WidgetWidth); // the default
+    window.editor()->insertPlainText(QStringLiteral("still usable"));
+    QCOMPARE(window.editor()->toPlainText(), QStringLiteral("still usable"));
 }
 
 QTEST_MAIN(MainWindowTest)

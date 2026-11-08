@@ -44,6 +44,17 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - Drag and drop: drop one or more files from Explorer onto the tab strip or any editor to open them,
   one tab each, with the last one active. A file that is already open is switched to, and one that
   fails shows its own error. Folders are ignored, and dragging or dropping text still works.
+- Remembered settings: word wrap, the font (family, size, bold, italic), the zoom, whether the
+  status bar is shown, the Find options (Match case, Wrap around) and the window's size, position
+  and maximized state are saved and restored the next time Scribe starts. A window that no longer
+  fits the screen is shrunk and moved into view, and one that was on a monitor that is no longer
+  connected opens at the default size and place, so it is never out of reach. Everything is kept in
+  a plain, editable file,
+  `%APPDATA%\Scribe\scribe.ini`. Changes are saved a moment after you stop making them (so turning
+  the mouse wheel through many zoom steps writes once) and again when the window closes. A missing,
+  damaged or hand-edited file never prevents startup: every bad value just falls back to its
+  default, and if the file cannot be written Scribe carries on without saving. The text you search
+  for is not remembered.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.
@@ -62,9 +73,11 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   design comes with the theme.
 - A file opened with the wrong encoding cannot be fixed from the Encoding menu: the menu changes how
   the file is saved, not how it was read. "Reopen with encoding" is planned for a later version.
-- Word wrap, font and zoom are not remembered between runs yet (that comes with settings), and the
-  zoom and character count in the status bar are not clickable yet. The character count
-  counts each line break as one.
+- The status bar's zoom and character count are not clickable yet. The character count counts each
+  line break as one.
+- The font's underline and strikeout effects are not remembered between runs (only family, size,
+  bold and italic are). A saved font that is no longer installed is replaced by the default one.
+- Hand-typed values in the settings file that contain commas lose the spaces after the commas.
 - Dropping files on the menu bar does not open them (only the tab strip and the editors do).
 - Binary files (an `.exe`, an image) are not recognised: they open as garbage, or are refused if their
   bytes would change on save. A file that fails while several are dropped shows one error per file.

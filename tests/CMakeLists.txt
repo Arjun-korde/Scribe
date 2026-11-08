@@ -10,6 +10,8 @@ add_executable(scribe_gtests
     CommandRegistryTest.cpp
     LineNumberTest.cpp
     TextSearchTest.cpp
+    SettingsManagerTest.cpp
+    WindowPlacementTest.cpp
 )
 target_link_libraries(scribe_gtests PRIVATE scribe_core GTest::gtest GTest::gtest_main)
 add_test(NAME scribe_gtests COMMAND scribe_gtests)
@@ -52,3 +54,6 @@ scribe_add_qt_test(scribe_search_commands_tests SearchCommandsTest.cpp scribe_ed
 scribe_add_qt_test(scribe_gotoline_dialog_tests GoToLineDialogTest.cpp scribe_ui)
 scribe_add_qt_test(scribe_editorsearch_tests EditorSearchTest.cpp scribe_editor)
 scribe_add_qt_test(scribe_findbar_tests FindBarTest.cpp scribe_editor)
+scribe_add_qt_test(scribe_viewsettings_persistence_tests ViewSettingsPersistenceTest.cpp scribe_editor)
+scribe_add_qt_test(scribe_findbar_persistence_tests FindBarPersistenceTest.cpp scribe_editor)
+scribe_add_qt_test(scribe_window_placement_tests WindowPlacementPersistenceTest.cpp scribe_ui)

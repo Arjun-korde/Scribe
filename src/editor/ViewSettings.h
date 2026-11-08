@@ -17,6 +17,7 @@ struct ViewSettings
     static constexpr int kZoomStepPercent = 10; ///< One menu click or one wheel notch.
 
     bool wordWrap = true; ///< Like Windows 11 Notepad.
+    bool statusBarVisible = true;
     QFont font = defaultFont();
     int zoomPercent = kDefaultZoomPercent;
 

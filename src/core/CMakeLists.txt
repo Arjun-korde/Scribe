@@ -14,6 +14,10 @@ add_library(scribe_core STATIC
     LineNumber.cpp
     TextSearch.h
     TextSearch.cpp
+    SettingsManager.h
+    SettingsManager.cpp
+    WindowPlacement.h
+    WindowPlacement.cpp
 )
 
 target_include_directories(scribe_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
