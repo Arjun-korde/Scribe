@@ -5,6 +5,13 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 
 ## [Unreleased]
 
+### Changed
+- The main window follows the Figma design: light and dark themes that follow the Windows setting
+  (and change while the app runs), a tab strip with left-aligned names, a muted close button, hover
+  states and a `+` button, a line-number gutter with a highlighted current line, and a status bar
+  with the cursor position and character count on the left and the encoding, line ending and zoom
+  on the right.
+
 ## [0.1.0] - 2026-11-08
 
 Release candidate: the automated tests and checks pass on both presets, but the manual tests in

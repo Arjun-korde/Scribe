@@ -245,6 +245,25 @@ The list is kept in `scribe.ini` under `[recent]`.
 | 14 | Edit `scribe.ini` by hand: add an empty entry, a relative path and a repeated path to `[recent]` | Scribe starts normally; the bad entries are not shown and the repeat appears once. |
 | 15 | Open a file by two different spellings (for example `C:\a\..\b.txt` and `c:\B.TXT`) | It is listed once. |
 
+## Main window look (Figma "Main Window", light and dark)
+
+Compare the running window with the frames `Main Window / Light` and `Main Window / Dark` in the Figma file (link in `docs/04-ui-design.md`). Run it in both themes: Windows Settings > Personalization > Colors > Choose your mode. The theme follows the setting while the app is running.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Switch Windows between light and dark while Scribe is open | Colors change at once, with no restart. Text stays readable in both. |
+| 2 | Look at the tab strip | The first tab starts 8 px from the left edge. Tabs are 168 px wide, the file name is left-aligned, and the close `×` is on the right. The active tab has the editor's color and rounded top corners. A `+` button follows the last tab. |
+| 3 | Hover an inactive tab, and the `×` and `+` buttons | Each gets the hover background. Pressing a button darkens it. |
+| 4 | Click `+` | A new tab is added to the right and made active. The `+` moves along with the last tab. |
+| 5 | Click the `×` of a tab that is not active | That tab closes (after the unsaved-changes prompt if it is modified), not the active one. |
+| 6 | Open a long file name | The name is cut with `...` before the `×`, never under it. |
+| 7 | Look at the editor | Line numbers in a left gutter, right-aligned, muted; the number of the caret's line is in the main text color. The caret's line has a lighter band across the gutter and the text. The area below the last line is the editor's color, not the window's. |
+| 8 | Type enough lines to scroll, then page up and down | Numbers stay level with their lines. Past 99 lines the gutter widens; past 999 it widens again. |
+| 9 | Turn on Word Wrap and type one very long line | One number, beside the first row. The band covers all rows of that line. |
+| 10 | Select text, then Find a word | The selection and the match mark use the selection color and remain readable. The band does not hide either. |
+| 11 | Zoom in and out (`Ctrl`+wheel) | Numbers, text and band scale together and stay aligned. |
+| 12 | Look at the status bar | `Ln, Col` and the character count on the left. Encoding, line ending and zoom on the right. Encoding and line ending highlight on hover and still open their menus. |
+
 ## Error handling
 
 | # | Steps | Expected |

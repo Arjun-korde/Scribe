@@ -13,7 +13,8 @@ namespace scribe::editor
 class EditorTabs;
 class EditorWidget;
 
-/// The bar under the editor: `Ln 3, Col 14 | 1,204 chars | UTF-8 | CRLF | 100%`. The encoding and
+/// The bar under the editor: `Ln 3, Col 14   1,204 chars          UTF-8   CRLF   100%`, with the
+/// first two on the left and the rest on the right, as in the design. The encoding and
 /// line ending segments are buttons: clicking one reports it so the window can show its choices.
 /// It always describes the active tab and updates as the user types, moves the caret, switches
 /// tabs, or changes the encoding, line ending or zoom.
@@ -44,8 +45,15 @@ signals:
     void lineEndingClicked(QWidget* anchor);
 
 private:
-    QLabel* addSegment(const QString& accessibleName);
-    QToolButton* addButtonSegment(const QString& accessibleName, const QString& toolTip);
+    enum class Side
+    {
+        Left,
+        Right
+    };
+
+    QLabel* addSegment(Side side, const QString& accessibleName);
+    QToolButton* addButtonSegment(Side side, const QString& accessibleName, const QString& toolTip);
+    void place(Side side, QWidget* segment);
 
     /// Starts following the active tab's editor (and stops following the previous one).
     void followCurrentEditor();

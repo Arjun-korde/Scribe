@@ -18,11 +18,12 @@ EditorStatusBar::EditorStatusBar(EditorTabs& tabs, QWidget* parent)
     // The size grip is a Windows 7 era corner widget; the segments are what matters here.
     setSizeGripEnabled(false);
 
-    m_position = addButtonSegment(tr("Cursor position"), tr("Go to line"));
-    m_characters = addSegment(tr("Character count"));
-    m_encoding = addButtonSegment(tr("Encoding"), tr("Change the encoding"));
-    m_lineEnding = addButtonSegment(tr("Line ending"), tr("Change the line ending"));
-    m_zoom = addSegment(tr("Zoom"));
+    // The design puts the position and the count on the left, the file's settings on the right.
+    m_position = addButtonSegment(Side::Left, tr("Cursor position"), tr("Go to line"));
+    m_characters = addSegment(Side::Left, tr("Character count"));
+    m_encoding = addButtonSegment(Side::Right, tr("Encoding"), tr("Change the encoding"));
+    m_lineEnding = addButtonSegment(Side::Right, tr("Line ending"), tr("Change the line ending"));
+    m_zoom = addSegment(Side::Right, tr("Zoom"));
 
     connect(m_position, &QToolButton::clicked, this, [this] { emit positionClicked(m_position); });
     connect(m_encoding, &QToolButton::clicked, this, [this] { emit encodingClicked(m_encoding); });
@@ -75,16 +76,25 @@ QString EditorStatusBar::zoom() const
     return m_zoom->text();
 }
 
-QLabel* EditorStatusBar::addSegment(const QString& accessibleName)
+void EditorStatusBar::place(Side side, QWidget* segment)
+{
+    if (side == Side::Left) {
+        addWidget(segment);
+    } else {
+        addPermanentWidget(segment);
+    }
+}
+
+QLabel* EditorStatusBar::addSegment(Side side, const QString& accessibleName)
 {
     auto* label = new QLabel(this);
     label->setAccessibleName(accessibleName);
     label->setContentsMargins(8, 0, 8, 0);
-    addPermanentWidget(label);
+    place(side, label);
     return label;
 }
 
-QToolButton* EditorStatusBar::addButtonSegment(const QString& accessibleName,
+QToolButton* EditorStatusBar::addButtonSegment(Side side, const QString& accessibleName,
                                                const QString& toolTip)
 {
     auto* button = new QToolButton(this);
@@ -94,7 +104,7 @@ QToolButton* EditorStatusBar::addButtonSegment(const QString& accessibleName,
     // A click must not move the keyboard focus away from the text. Keyboard users reach the same
     // choices through the Encoding menu.
     button->setFocusPolicy(Qt::NoFocus);
-    addPermanentWidget(button);
+    place(side, button);
     return button;
 }
 

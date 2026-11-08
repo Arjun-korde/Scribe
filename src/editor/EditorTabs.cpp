@@ -1,5 +1,6 @@
 #include "EditorTabs.h"
 
+#include "EditorTabBar.h"
 #include "EditorWidget.h"
 #include "FileDropFilter.h"
 
@@ -7,17 +8,35 @@
 #include <QFileInfo>
 #include <QMouseEvent>
 #include <QTabBar>
+#include <QToolButton>
 
 namespace scribe::editor
 {
 
+namespace
+{
+constexpr int kNewTabButtonSize = 28; // also the minimum click target in the design
+} // namespace
+
 EditorTabs::EditorTabs(QWidget* parent)
     : QTabWidget(parent)
 {
+    setTabBar(new EditorTabBar(this)); // draws the tabs and their close buttons
+    // QTabWidget forwards the bar's close requests only for the bar's own (tabsClosable) buttons.
+    connect(tabBar(), &QTabBar::tabCloseRequested, this, &QTabWidget::tabCloseRequested);
     setDocumentMode(true);
-    setTabsClosable(true);
     setMovable(true);
     tabBar()->installEventFilter(this);
+
+    m_newTabButton = new QToolButton(tabBar());
+    m_newTabButton->setObjectName(QStringLiteral("newTabButton")); // styled by the theme
+    m_newTabButton->setText(QStringLiteral("+"));
+    m_newTabButton->setToolTip(tr("New tab"));
+    m_newTabButton->setAccessibleName(tr("New tab"));
+    m_newTabButton->setFocusPolicy(Qt::NoFocus); // a click must not take the focus from the text
+    m_newTabButton->setFixedSize(kNewTabButtonSize, kNewTabButtonSize);
+    connect(m_newTabButton, &QToolButton::clicked, this, [this] { addEditor(); });
+    connect(tabBar(), &QTabBar::tabMoved, this, &EditorTabs::positionNewTabButton);
 
     // Files dragged from Explorer can land on the tab strip (this widget) or on an editor's text
     // area (see adopt()). The tab bar itself does not take drops, so Qt hands them to this widget.
@@ -222,8 +241,44 @@ void EditorTabs::changeViewSettings(const ViewSettings& settings)
     emit viewSettingsChanged();
 }
 
+void EditorTabs::tabInserted(int index)
+{
+    QTabWidget::tabInserted(index);
+    positionNewTabButton();
+}
+
+void EditorTabs::tabRemoved(int index)
+{
+    QTabWidget::tabRemoved(index);
+    positionNewTabButton();
+}
+
+void EditorTabs::positionNewTabButton()
+{
+    if (m_newTabButton == nullptr || count() == 0) {
+        return;
+    }
+    // The tab sizes are worked out on the next layout pass, so wait for it.
+    QMetaObject::invokeMethod(
+        this,
+        [this] {
+            const QRect last = tabBar()->tabRect(count() - 1);
+            // Centred on the tab's body (below the gap at the top); the tab rect already ends
+            // with the spacing between tabs.
+            const int y = last.top() + EditorTabBar::kTopGap +
+                          (EditorTabBar::kTabHeight - kNewTabButtonSize) / 2;
+            m_newTabButton->move(last.right() + 1, y);
+            m_newTabButton->raise();
+        },
+        Qt::QueuedConnection);
+}
+
 bool EditorTabs::eventFilter(QObject* watched, QEvent* event)
 {
+    if (watched == tabBar() &&
+        (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Resize)) {
+        positionNewTabButton(); // a tab got longer or shorter, or the strip was resized
+    }
     if (watched == tabBar() && event->type() == QEvent::MouseButtonRelease) {
         const auto* mouse = static_cast<QMouseEvent*>(event);
         if (mouse->button() == Qt::MiddleButton) {

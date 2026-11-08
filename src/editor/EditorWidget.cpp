@@ -1,16 +1,65 @@
 #include "EditorWidget.h"
 
 #include <QFileInfo>
-#include <QTextBlock>
+#include <QPainter>
+#include <QTextCursor>
 #include <QWheelEvent>
+
+#include <algorithm>
 
 namespace scribe::editor
 {
+
+namespace
+{
+// Sizes from the Figma main window: the gutter is 56 px plus the 4 px that the text margin grows
+// by, numbers sit 16 px from its right edge, and the text starts 8 px after the gutter.
+constexpr int kMinGutterWidth = 60;
+constexpr int kNumberPaddingLeft = 8;
+constexpr int kNumberPaddingRight = 16;
+constexpr int kTextMargin = 8;
+constexpr qreal kNumberFontScale = 13.0 / 15.0; // 13 px numbers beside 15 px text
+} // namespace
+
+/// The line numbers. All the drawing logic is in EditorWidget::paintGutter(), which knows the
+/// blocks and the scroll position.
+class EditorWidget::Gutter : public QWidget
+{
+public:
+    explicit Gutter(EditorWidget& editor)
+        : QWidget(&editor)
+        , m_editor(editor)
+    {}
+
+protected:
+    void paintEvent(QPaintEvent* event) override { m_editor.paintGutter(event); }
+
+private:
+    EditorWidget& m_editor;
+};
 
 EditorWidget::EditorWidget(QWidget* parent)
     : QPlainTextEdit(parent)
 {
     connect(document(), &QTextDocument::modificationChanged, this, &EditorWidget::stateChanged);
+
+    // The area below the text is the editor's own colour (see paintEvent), not the window's.
+    setBackgroundVisible(false);
+    viewport()->setAutoFillBackground(false);
+    document()->setDocumentMargin(kTextMargin);
+    // Changing the margin counts as an edit; a new editor is clean and has nothing to undo.
+    document()->clearUndoRedoStacks();
+    document()->setModified(false);
+
+    m_gutter = new Gutter(*this);
+    connect(this, &QPlainTextEdit::blockCountChanged, this, &EditorWidget::updateGutterWidth);
+    connect(this, &QPlainTextEdit::updateRequest, this, &EditorWidget::updateGutter);
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this] {
+        // Both the old and the new line change, so repaint rather than work out which.
+        viewport()->update();
+        m_gutter->update();
+    });
+    updateGutterWidth();
 }
 
 bool EditorWidget::isModified() const
@@ -110,6 +159,112 @@ void EditorWidget::markSaved()
 {
     document()->setModified(false);
     emit stateChanged();
+}
+
+int EditorWidget::gutterWidth() const
+{
+    const int digits = std::max<qsizetype>(2, QString::number(blockCount()).size());
+    const int numbers = fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
+    return std::max(kMinGutterWidth, kNumberPaddingLeft + numbers + kNumberPaddingRight);
+}
+
+void EditorWidget::updateGutterWidth()
+{
+    setViewportMargins(gutterWidth(), 0, 0, 0);
+    const QRect area = contentsRect();
+    m_gutter->setGeometry(area.left(), area.top(), gutterWidth(), area.height());
+}
+
+void EditorWidget::updateGutter(const QRect& rect, int dy)
+{
+    if (dy != 0) {
+        m_gutter->scroll(0, dy);
+    } else {
+        m_gutter->update(0, rect.y(), m_gutter->width(), rect.height());
+    }
+}
+
+QRectF EditorWidget::textRectOf(const QTextBlock& block) const
+{
+    // The block's own rectangle also holds the document margin above the first line and below the
+    // last one. The caret rectangles of its first and last position are exactly the lines, and a
+    // wrapped line (one block, several rows) is covered from its first row to its last.
+    QTextCursor first(block);
+    QTextCursor last(block);
+    last.movePosition(QTextCursor::EndOfBlock);
+    const QRect top = cursorRect(first);
+    const QRect bottom = cursorRect(last);
+    return QRectF(top.left(), top.top(), 0, bottom.bottom() - top.top() + 1);
+}
+
+int EditorWidget::firstRowHeight(const QTextBlock& block) const
+{
+    return cursorRect(QTextCursor(block)).height();
+}
+
+void EditorWidget::paintEvent(QPaintEvent* event)
+{
+    {
+        QPainter painter(viewport());
+        painter.fillRect(event->rect(), palette().color(QPalette::Base));
+
+        QRectF band = textRectOf(textCursor().block());
+        band.setLeft(0);
+        band.setRight(viewport()->width());
+        painter.fillRect(band, palette().color(QPalette::AlternateBase));
+    }
+    QPlainTextEdit::paintEvent(event);
+}
+
+void EditorWidget::resizeEvent(QResizeEvent* event)
+{
+    QPlainTextEdit::resizeEvent(event);
+    updateGutterWidth();
+}
+
+void EditorWidget::changeEvent(QEvent* event)
+{
+    QPlainTextEdit::changeEvent(event);
+    if (event->type() == QEvent::FontChange) {
+        updateGutterWidth(); // the digits are wider or narrower
+    }
+}
+
+void EditorWidget::paintGutter(QPaintEvent* event)
+{
+    QPainter painter(m_gutter);
+    const QPalette& colors = palette();
+    painter.fillRect(event->rect(), colors.color(QPalette::Base));
+
+    QFont numberFont = font();
+    if (numberFont.pointSizeF() > 0) {
+        numberFont.setPointSizeF(numberFont.pointSizeF() * kNumberFontScale);
+    }
+    painter.setFont(numberFont);
+
+    const int currentBlock = textCursor().blockNumber();
+    const int textWidth = m_gutter->width() - kNumberPaddingRight;
+
+    QTextBlock block = firstVisibleBlock();
+    while (block.isValid()) {
+        const QRectF lines = textRectOf(block);
+        if (lines.top() > event->rect().bottom()) {
+            break;
+        }
+        if (block.isVisible() && lines.bottom() >= event->rect().top()) {
+            const bool current = block.blockNumber() == currentBlock;
+            if (current) {
+                painter.fillRect(QRectF(0, lines.top(), m_gutter->width(), lines.height()),
+                                 colors.color(QPalette::AlternateBase));
+            }
+            // The number goes beside the block's first line, even when the block wraps.
+            painter.setPen(colors.color(current ? QPalette::Text : QPalette::PlaceholderText));
+            painter.drawText(QRectF(0, lines.top(), textWidth, firstRowHeight(block)),
+                             Qt::AlignRight | Qt::AlignVCenter,
+                             QString::number(block.blockNumber() + 1));
+        }
+        block = block.next();
+    }
 }
 
 void EditorWidget::wheelEvent(QWheelEvent* event)

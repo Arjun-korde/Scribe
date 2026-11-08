@@ -3,6 +3,7 @@
 #include "Document.h"
 
 #include <QPlainTextEdit>
+#include <QTextBlock>
 
 namespace scribe::editor
 {
@@ -73,7 +74,25 @@ protected:
     /// on its own, in points, outside the shared zoom percentage.
     void wheelEvent(QWheelEvent* event) override;
 
+    /// Paints the current-line band under the text. It is drawn here, not as an extra selection,
+    /// because the find code owns the extra selections (the match marks).
+    void paintEvent(QPaintEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
+    void changeEvent(QEvent* event) override;
+
 private:
+    class Gutter;
+
+    /// Width of the line-number gutter: two digits at least, more for very long documents.
+    int gutterWidth() const;
+    void updateGutterWidth();
+    void updateGutter(const QRect& rect, int dy);
+    void paintGutter(QPaintEvent* event);
+
+    /// Where the text lines of `block` are in the viewport, without the document margins.
+    QRectF textRectOf(const QTextBlock& block) const;
+    int firstRowHeight(const QTextBlock& block) const;
+
     /// Copies the widget text into the Document when the two differ. Comparing the text, rather
     /// than trusting modified flags, covers every case: a failed save leaves the Document holding
     /// text the widget may since have undone, QPlainTextEdit::setPlainText() resets the widget's
@@ -83,6 +102,7 @@ private:
     void markSaved();
 
     core::Document m_fileDocument;
+    Gutter* m_gutter = nullptr; ///< Child widget in the left margin of the viewport.
     int m_wheelRemainder =
         0; ///< Wheel movement not yet worth a full notch (touchpads send tiny ones).
 };
