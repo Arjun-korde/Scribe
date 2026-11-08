@@ -5,6 +5,11 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-08
+
+Release candidate: the automated tests and checks pass on both presets, but the manual tests in
+`docs/05-manual-tests.md` have not been run yet for this release.
+
 ### Added
 - File menu with New, Open, Save, Save As and Exit (`Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`).
 - Tabs: New and Open add a tab (opening a file that is already open switches to it), `Ctrl+W` closes
