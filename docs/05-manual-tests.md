@@ -270,7 +270,7 @@ Every menu uses the design of the Editor Context Menu frame (also in `Menus, sta
 
 | # | Steps | Expected |
 |---|---|---|
-| 1 | Open File, Edit, Search, View and Encoding | Each is a panel with a 1 px outline, rounded corners (Windows 11) and a soft shadow. Rows are 28 px tall with 12 px side padding. The panel is at least 270 px wide. |
+| 1 | Open File, Edit, Search, View and Encoding | Each is a panel with a 1 px outline, rounded corners (Windows 11) and a soft shadow. Rows are 28 px tall with 12 px side padding and at least 250 px wide (the design's 260 px was narrowed on request). Labels are 14 px, shortcuts 13 px, and the menu bar names 13 px. |
 | 2 | Look at a row with a shortcut (Edit > Paste) | The name is on the left in the main text color, the shortcut on the right, smaller and muted. |
 | 3 | Move the mouse over rows, then use the arrow keys | The row under the mouse or the keyboard gets the rounded hover fill. Only one row at a time. |
 | 4 | Open Edit with nothing selected | Cut, Copy and Delete are faded (40%), do not get the hover fill, and cannot be chosen. |

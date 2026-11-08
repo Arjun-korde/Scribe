@@ -28,11 +28,10 @@ public:
     static constexpr int kCheckColumn = 20; ///< Left of the labels when the menu has check marks.
     static constexpr int kPanelPadding = 4; ///< Between the border and the rows.
     static constexpr int kSeparatorRow = 3; ///< A 1 px line with a pixel of padding each side.
-    static constexpr int kMinInnerWidth = 260; ///< Panel width 270 minus border and padding.
-    static constexpr int kPanelSlack = 1;      ///< QMenu is one pixel wider than its rows need.
+    static constexpr int kRowWidth = 250;   ///< The least a row is wide; long labels widen it.
     static constexpr int kCornerRadius = 4;
-    static constexpr int kLabelPixelSize = 13;
-    static constexpr int kShortcutPixelSize = 12;
+    static constexpr int kLabelPixelSize = 14;
+    static constexpr int kShortcutPixelSize = 13;
     static constexpr qreal kDisabledOpacity = 0.4;
 
     /// Asks Windows to round the corners of menu pop-ups (as in the design) when they are shown.

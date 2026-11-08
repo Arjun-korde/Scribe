@@ -1,7 +1,9 @@
 #include "MenuStyle.h"
 
+#include <QAction>
 #include <QEvent>
 #include <QFontMetrics>
+#include <QKeySequence>
 #include <QMenu>
 #include <QPainter>
 #include <QPainterPath>
@@ -37,6 +39,36 @@ QString shownLabel(const QString& label)
     text.remove(QLatin1Char('&'));
     text.replace(QLatin1Char('\u0001'), QLatin1Char('&'));
     return text;
+}
+
+/// The width QMenu adds to every row for its shortcut column: the widest shortcut of the menu, in
+/// the menu's own font. QMenu does this itself, after asking the style for the size of each row,
+/// and it does it whatever the style draws. This style already counts the shortcut in a row's
+/// width, so it takes this amount off again; otherwise rows with shortcuts would come out wider
+/// than the rows without. The rule is the one in QMenuPrivate::updateActionRects().
+int shortcutColumnWidth(const QWidget* widget)
+{
+    const auto* menu = qobject_cast<const QMenu*>(widget);
+    if (menu == nullptr) {
+        return 0;
+    }
+
+    const QFontMetrics metrics = menu->fontMetrics();
+    int widest = 0;
+    for (const QAction* action : menu->actions()) {
+        if (action->isSeparator()) {
+            continue;
+        }
+        const QString text = action->text();
+        const qsizetype tab = text.indexOf(QLatin1Char('\t'));
+        if (tab != -1) {
+            widest = std::max(widest, metrics.horizontalAdvance(text.mid(tab + 1)));
+        } else if (!action->shortcut().isEmpty()) {
+            widest = std::max(widest, metrics.horizontalAdvance(
+                                          action->shortcut().toString(QKeySequence::NativeText)));
+        }
+    }
+    return widest;
 }
 
 /// Menu text is "label<TAB>shortcut"; the shortcut part may be missing.
@@ -146,13 +178,10 @@ QSize MenuStyle::sizeFromContents(ContentsType type, const QStyleOption* option,
         return QProxyStyle::sizeFromContents(type, option, contentsSize, widget);
     }
 
-    // QMenu::sizeHint() comes out one pixel wider than the rows it holds (measured with this
-    // style), so ask for one less to get the panel width of the design. The rows are then one pixel
-    // narrower than in Figma (259 against 260), which is the price of the exact panel size.
-    constexpr int kMinRowWidth = kMinInnerWidth - kPanelSlack;
+    const int columnQMenuAdds = shortcutColumnWidth(widget);
 
     if (item->menuItemType == QStyleOptionMenuItem::Separator) {
-        return {kMinRowWidth, kSeparatorRow};
+        return {kRowWidth - columnQMenuAdds, kSeparatorRow};
     }
 
     const QFontMetrics labelMetrics(withPixelSize(item->font, kLabelPixelSize));
@@ -167,7 +196,7 @@ QSize MenuStyle::sizeFromContents(ContentsType type, const QStyleOption* option,
     } else if (item->menuItemType == QStyleOptionMenuItem::SubMenu) {
         width += kColumnGap + 8; // room for the arrow
     }
-    return {std::max(width, kMinRowWidth), kRowHeight + kRowGap};
+    return {std::max(width, kRowWidth) - columnQMenuAdds, kRowHeight + kRowGap};
 }
 
 void MenuStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,

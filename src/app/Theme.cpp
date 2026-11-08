@@ -72,8 +72,8 @@ QString Theme::styleSheet() const
     // Sizes follow the Figma main window: tab strip 36 px with 32 px tabs, status bar 26 px.
     // @name@ is replaced by the theme's colour of that name.
     QString css = QStringLiteral(R"(
-QMenuBar { background: @surfaceChrome@; color: @textPrimary@; }
-QMenuBar::item { padding: 4px 8px; margin: 4px 0; background: transparent; border-radius: 4px; }
+QMenuBar { background: @surfaceChrome@; color: @textPrimary@; font-size: 14px; }
+QMenuBar::item { padding: 3px 8px; margin: 4px 0; background: transparent; border-radius: 4px; }
 QMenuBar::item:selected { background: @hover@; }
 QMenuBar::item:pressed { background: @pressed@; }
 

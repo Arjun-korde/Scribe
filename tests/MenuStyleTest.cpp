@@ -68,15 +68,42 @@ private slots:
         item.menuItemType = QStyleOptionMenuItem::Normal;
         item.text = "Cut\tCtrl+X";
         item.font = QApplication::font("QMenu");
-        // The panel is 270 px wide (see figmaEditorContextMenuIs164PixelsHighAnd270Wide).
         QWidget parent;
         auto* menu = new QMenu(&parent);
         menu->addAction("Cut");
         menu->resize(menu->sizeHint());
-        QCOMPARE(menu->width(), 270);
-        // QMenu leaves a pixel more than its rows use, so a row is 259 px for a 270 px panel.
-        QCOMPARE(menu->actionGeometry(menu->actions().first()).width() + MenuStyle::kPanelSlack,
-                 MenuStyle::kMinInnerWidth);
+        QCOMPARE(menu->actionGeometry(menu->actions().first()).width(), MenuStyle::kRowWidth);
+        QCOMPARE(MenuStyle::kRowWidth, 250);
+    }
+
+    void rowsWithShortcutsAreNotWiderThanRowsWithout()
+    {
+        // QMenu adds the width of its widest shortcut to every row; the style takes it off again,
+        // so a menu full of shortcuts has the same 250 px rows as one without any.
+        QWidget parent;
+        auto* menu = new QMenu(&parent);
+        menu->addAction("Open")->setShortcut(QKeySequence("Ctrl+O"));
+        menu->addAction("Save As")->setShortcut(QKeySequence("Ctrl+Shift+S"));
+        menu->addSeparator();
+        menu->addAction("Exit");
+        menu->resize(menu->sizeHint());
+
+        for (QAction* action : menu->actions()) {
+            QCOMPARE(menu->actionGeometry(action).width(), MenuStyle::kRowWidth);
+        }
+    }
+
+    void aLongLabelWidensEveryRowOfTheMenuEqually()
+    {
+        QWidget parent;
+        auto* menu = new QMenu(&parent);
+        menu->addAction(QString("x").repeated(60))->setShortcut(QKeySequence("Ctrl+Shift+S"));
+        menu->addAction("Short")->setShortcut(QKeySequence("Ctrl+B"));
+        menu->resize(menu->sizeHint());
+
+        const int first = menu->actionGeometry(menu->actions().at(0)).width();
+        QVERIFY(first > MenuStyle::kRowWidth);
+        QCOMPARE(menu->actionGeometry(menu->actions().at(1)).width(), first);
     }
 
     void aLongLabelWidensTheRow()
@@ -86,17 +113,17 @@ private slots:
         item.font = QApplication::font("QMenu");
         item.text = QString("x").repeated(80) + "\tCtrl+Shift+Alt+F12";
         QVERIFY(appStyle()->sizeFromContents(QStyle::CT_MenuItem, &item, QSize()).width() >
-                MenuStyle::kMinInnerWidth);
+                MenuStyle::kRowWidth);
     }
 
-    void figmaEditorContextMenuIs164PixelsHighAnd270Wide()
+    void figmaEditorContextMenuIs164PixelsHigh()
     {
-        // The design's menu: Cut, Copy, Paste | Select All | Start dictation, in a 270 x 164 panel
-        // (1 px border, 4 px padding, 28 px rows, 2 px between them).
+        // The design's menu: Cut, Copy, Paste | Select All | Start dictation, 164 px high
+        // (1 px border, 4 px padding, 28 px rows, 2 px between them). The width is ours: 250 px
+        // rows.
         QWidget parent;
         QMenu* menu = editLikeMenu(&parent);
         QCOMPARE(menu->sizeHint().height(), 164);
-        QCOMPARE(menu->sizeHint().width(), 270);
     }
 
     void panelAndBorderUseTheThemeColours()
