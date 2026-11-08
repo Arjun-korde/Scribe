@@ -57,6 +57,10 @@ public:
     bool goToLine(int line);
 
 signals:
+    /// A file was opened into this editor, or the text was saved under a new name; `path` is the
+    /// file. A plain Save to the same path does not emit it.
+    void fileUsed(const QString& path);
+
     /// Emitted when the path, the modified state, the encoding or the line ending changes.
     void stateChanged();
 

@@ -26,8 +26,9 @@ class ViewSettingsPersistence;
 
 namespace scribe::app
 {
+class RecentFilesTracker;
 class WindowPlacementPersistence;
-}
+} // namespace scribe::app
 
 /// The main window: a menu bar and a row of editor tabs. Every menu entry runs a command from the
 /// CommandRegistry, so shortcuts, menus and later the command palette share the same actions.
@@ -67,11 +68,14 @@ private:
     void showChoices(QWidget* anchor, const QList<QAction*>& actions);
     QAction* addCommandAction(QMenu* menu, const QString& commandId);
     void updateTitle();
+    void fillRecentMenu();
 
     scribe::core::CommandRegistry m_commands;
     scribe::editor::EditorTabs* m_tabs = nullptr;           // owned by Qt as the central widget
     scribe::editor::EditorStatusBar* m_statusBar = nullptr; // the window's status bar, owned by Qt
     scribe::editor::FindBar* m_findBar = nullptr;           // under the tabs, owned by Qt
+    scribe::app::RecentFilesTracker* m_recent = nullptr;    // the recent files list, owned by Qt
+    QMenu* m_recentMenu = nullptr;                          // File > Open Recent, owned by Qt
     FileDialogs m_dialogs; // a copy, for the commands that ask the user (font, line number)
     // The Encoding menu's actions, also offered from the status bar's pop-ups.
     QList<QAction*> m_encodingActions;

@@ -44,6 +44,7 @@ core::IoResult EditorWidget::openFile(const QString& path)
     setPlainText(m_fileDocument.backend().text());
     document()->setModified(false);
     emit stateChanged();
+    emit fileUsed(path);
     return result;
 }
 
@@ -63,6 +64,7 @@ core::IoResult EditorWidget::saveFileAs(const QString& path)
     const core::IoResult result = m_fileDocument.saveAs(path);
     if (result.ok()) {
         markSaved();
+        emit fileUsed(path);
     }
     return result;
 }

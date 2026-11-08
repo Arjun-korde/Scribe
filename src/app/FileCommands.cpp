@@ -1,11 +1,13 @@
 #include "FileCommands.h"
 
 #include "DocumentController.h"
+#include "RecentFilesTracker.h"
 
 #include <QWidget>
 
 void FileCommands::registerIn(scribe::core::CommandRegistry& registry,
-                              DocumentController& controller, QWidget& window)
+                              DocumentController& controller, QWidget& window,
+                              scribe::app::RecentFilesTracker& recent)
 {
     using scribe::core::Command;
 
@@ -20,4 +22,9 @@ void FileCommands::registerIn(scribe::core::CommandRegistry& registry,
                                      [&controller] { controller.saveFileAs(); }, true});
     registry.registerCommand(
         Command{kExit, tr("E&xit"), QString(), [&window] { window.close(); }, true});
+
+    Command clearRecent{kClearRecent, tr("&Clear Recent Files"), QString(),
+                        [&recent] { recent.clear(); }, true};
+    clearRecent.enabledWhen = [&recent] { return !recent.isEmpty(); };
+    registry.registerCommand(std::move(clearRecent));
 }
