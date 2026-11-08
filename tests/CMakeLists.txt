@@ -10,6 +10,7 @@ add_executable(scribe_gtests
     CommandRegistryTest.cpp
     LineNumberTest.cpp
     TextSearchTest.cpp
+    SettingsManagerTest.cpp
 )
 target_link_libraries(scribe_gtests PRIVATE scribe_core GTest::gtest GTest::gtest_main)
 add_test(NAME scribe_gtests COMMAND scribe_gtests)
