@@ -70,6 +70,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the clang-tidy step diffs against the pull request's base commit
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -114,11 +116,36 @@ jobs:
 
       - name: Static analysis (clang-tidy)
         shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           # One clang-tidy process per file, several at a time. Run one after another this step took
           # about 12 minutes. Output is collected per file so the logs do not interleave.
           $root = (Get-Location).Path
           $files = git ls-files 'src/*.cpp' 'tests/*.cpp'
+
+          # On pull requests only analyse what the PR touches. Pushes to main still check everything.
+          if ($env:BASE_SHA) {
+              $changed = @(git diff --name-only --diff-filter=ACMR "$env:BASE_SHA...HEAD")
+              # A change to the analysis settings or the build can affect every file.
+              $global = $changed | Where-Object { $_ -match '^(\.clang-tidy|CMakeLists\.txt|CMakePresets\.json|vcpkg\.json|\.github/workflows/ci\.yml)$' }
+              if (-not $global) {
+                  $headers = @($changed | Where-Object { $_ -match '^(src|tests)/.*\.h$' })
+                  $selected = $files | Where-Object {
+                      $file = $_
+                      # The .cpp itself changed, or it includes a header that changed.
+                      ($changed -contains $file) -or
+                      ($headers | Where-Object { Select-String -Path $file -SimpleMatch -Pattern ('"' + (Split-Path $_ -Leaf) + '"') -Quiet -List })
+                  }
+                  $files = @($selected)
+                  Write-Host "Pull request: analysing $($files.Count) of $(@(git ls-files 'src/*.cpp' 'tests/*.cpp').Count) files."
+              }
+              else {
+                  Write-Host "Analysis settings or build files changed ($($global -join ', ')): analysing all files."
+              }
+          }
+          if (-not $files) { Write-Host 'No C++ files to analyse.'; exit 0 }
+
           $results = $files | ForEach-Object -ThrottleLimit ([Environment]::ProcessorCount) -Parallel {
               Set-Location $using:root
               $output = clang-tidy -p build/debug --quiet $_ 2>&1 | Out-String
