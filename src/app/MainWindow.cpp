@@ -7,6 +7,7 @@
 #include "EditorWidget.h"
 #include "EncodingCommands.h"
 #include "FileCommands.h"
+#include "FindBar.h"
 #include "SearchCommands.h"
 #include "TabCommands.h"
 #include "ViewCommands.h"
@@ -16,6 +17,7 @@
 #include <QKeySequence>
 #include <QMenu>
 #include <QMenuBar>
+#include <QVBoxLayout>
 
 using scribe::editor::EditCommands;
 using scribe::editor::SearchCommands;
@@ -33,7 +35,15 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     , m_controller(std::make_unique<DocumentController>(*m_tabs, std::move(dialogs), this))
 {
     resize(900, 600);
-    setCentralWidget(m_tabs);
+    // The tabs with the find bar under them.
+    auto* central = new QWidget(this);
+    auto* centralLayout = new QVBoxLayout(central);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+    m_findBar = new scribe::editor::FindBar(*m_tabs, central);
+    centralLayout->addWidget(m_tabs, 1);
+    centralLayout->addWidget(m_findBar);
+    setCentralWidget(central);
     m_statusBar = new scribe::editor::EditorStatusBar(*m_tabs, this);
     setStatusBar(m_statusBar);
 
@@ -51,6 +61,10 @@ MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
     connect(m_statusBar, &scribe::editor::EditorStatusBar::lineEndingClicked, this,
             [this](QWidget* anchor) { showChoices(anchor, m_lineEndingActions); });
     updateTitle();
+
+    // The new window must start with the caret in the text, so that typing works at once. (The find
+    // bar sits in the same layout, and without this the first focus can land elsewhere.)
+    editor()->setFocus();
 }
 
 MainWindow::~MainWindow() = default;
@@ -94,7 +108,7 @@ void MainWindow::registerCommands()
             return m_dialogs.askLineNumber(this, currentLine, lineCount);
         };
     }
-    SearchCommands::registerIn(m_commands, *m_tabs, lineChooser);
+    SearchCommands::registerIn(m_commands, *m_tabs, *m_findBar, lineChooser);
 
     TabCommands::registerIn(m_commands, *m_tabs);
 }
@@ -132,6 +146,11 @@ void MainWindow::buildMenus()
     addCommandAction(editMenu, EditCommands::kInsertDateTime);
 
     QMenu* searchMenu = addMenu(tr("&Search"));
+    addCommandAction(searchMenu, SearchCommands::kFind);
+    addCommandAction(searchMenu, SearchCommands::kFindNext);
+    addCommandAction(searchMenu, SearchCommands::kFindPrevious);
+    addCommandAction(searchMenu, SearchCommands::kReplace);
+    searchMenu->addSeparator();
     addCommandAction(searchMenu, SearchCommands::kGoToLine);
 
     QMenu* viewMenu = addMenu(tr("&View"));

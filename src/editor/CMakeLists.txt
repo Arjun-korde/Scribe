@@ -15,6 +15,10 @@ add_library(scribe_editor STATIC
     ViewCommands.cpp
     SearchCommands.h
     SearchCommands.cpp
+    EditorSearch.h
+    EditorSearch.cpp
+    FindBar.h
+    FindBar.cpp
     EditorStatusBar.h
     EditorStatusBar.cpp
 )

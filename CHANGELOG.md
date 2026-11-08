@@ -20,6 +20,14 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - View menu: Word Wrap, Font..., Zoom In / Out / Restore Default Zoom (`Ctrl++` or `Ctrl+=`, `Ctrl+-`,
   `Ctrl+0`, or Ctrl+mouse wheel), and a Status Bar toggle. Wrapping, font and zoom (10% to 500%) apply
   to every tab, including new ones. The editor starts in Cascadia Mono or Consolas at 11 pt.
+- Find and Replace: `Ctrl+F` opens a bar under the editor (`Ctrl+H` adds the Replace row, `Esc` closes
+  it). Typing jumps to the first match from the caret; `Enter` / `Shift+Enter` (or `F3` /
+  `Shift+F3`, also with the bar closed) go to the next / previous match. Options: Match case and
+  Wrap around (on by default). The bar shows "3 of 12", "No results" or "No more results", and the
+  current match is highlighted even while you type in the bar. A one-line selection is used as the
+  text to find. Replace replaces the current match and moves to the next; Replace All replaces
+  every match as one undo step (one `Ctrl+Z` undoes it) and reports "12 replaced" in the bar.
+  Matches are counted up to 100,000.
 - Go To Line (`Ctrl+G`, in the new Search menu, or click the line/column in the status bar): a small
   dialog that opens on the current line. Only a number from 1 to the number of lines is accepted;
   anything else (for example 310 in a 300-line document) disables Go and shows "Enter a number from
@@ -46,6 +54,10 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
   the file's encoding cannot store.
 
 ### Known limitations
+- Find does not support regular expressions, whole-word matching, highlighting every match, or
+  searching all tabs or files yet (planned for a later version). The search text is a single line,
+  so text containing a line break cannot be searched, and case-insensitive matching uses simple
+  case folding (for example German "ß" does not match "SS").
 - An invalid line number in Go To Line is shown by text only for now; the red field border from the
   design comes with the theme.
 - A file opened with the wrong encoding cannot be fixed from the Encoding menu: the menu changes how

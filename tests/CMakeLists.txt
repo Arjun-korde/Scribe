@@ -9,6 +9,7 @@ add_executable(scribe_gtests
     DocumentTest.cpp
     CommandRegistryTest.cpp
     LineNumberTest.cpp
+    TextSearchTest.cpp
 )
 target_link_libraries(scribe_gtests PRIVATE scribe_core GTest::gtest GTest::gtest_main)
 add_test(NAME scribe_gtests COMMAND scribe_gtests)
@@ -49,3 +50,5 @@ scribe_add_qt_test(scribe_viewcommands_tests ViewCommandsTest.cpp scribe_editor)
 scribe_add_qt_test(scribe_encoding_commands_tests EncodingCommandsTest.cpp scribe_ui)
 scribe_add_qt_test(scribe_search_commands_tests SearchCommandsTest.cpp scribe_editor)
 scribe_add_qt_test(scribe_gotoline_dialog_tests GoToLineDialogTest.cpp scribe_ui)
+scribe_add_qt_test(scribe_editorsearch_tests EditorSearchTest.cpp scribe_editor)
+scribe_add_qt_test(scribe_findbar_tests FindBarTest.cpp scribe_editor)
