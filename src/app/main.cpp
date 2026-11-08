@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "SettingsManager.h"
+#include "ThemeManager.h"
 
 #include <QApplication>
 #include <QIcon>
@@ -13,6 +14,8 @@ int main(int argc, char* argv[])
     QApplication::setApplicationVersion(PROJECT_VERSION);
     QApplication::setOrganizationName("Scribe");
     QApplication::setWindowIcon(QIcon(":/icons/scribe.ico"));
+
+    scribe::app::ThemeManager themes(app); // before the window, so it is first painted themed
 
     // Declared before the window, so it is destroyed after it: the window saves on its way out.
     scribe::core::SettingsManager settings(scribe::core::SettingsManager::defaultFilePath());
