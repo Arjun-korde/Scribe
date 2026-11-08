@@ -11,6 +11,7 @@
 #include "SearchCommands.h"
 #include "TabCommands.h"
 #include "ViewCommands.h"
+#include "ViewSettingsPersistence.h"
 
 #include <QAction>
 #include <QCloseEvent>
@@ -29,12 +30,25 @@ MainWindow::MainWindow(QWidget* parent)
 {}
 
 MainWindow::MainWindow(FileDialogs dialogs, QWidget* parent)
+    : MainWindow(std::move(dialogs), nullptr, parent)
+{}
+
+MainWindow::MainWindow(FileDialogs dialogs, scribe::core::SettingsManager* settings,
+                       QWidget* parent)
     : QMainWindow(parent)
     , m_tabs(new scribe::editor::EditorTabs(this))
     , m_dialogs(dialogs) // copied before the controller takes the dialogs
     , m_controller(std::make_unique<DocumentController>(*m_tabs, std::move(dialogs), this))
 {
     resize(900, 600);
+
+    // Load the saved view settings into the tabs before anything else reads them (the status bar
+    // shows the zoom, for example). Without a store the defaults stay and nothing is saved.
+    if (settings != nullptr) {
+        m_viewPersistence =
+            std::make_unique<scribe::editor::ViewSettingsPersistence>(*m_tabs, *settings);
+    }
+
     // The tabs with the find bar under them.
     auto* central = new QWidget(this);
     auto* centralLayout = new QVBoxLayout(central);
@@ -83,6 +97,9 @@ void MainWindow::closeEvent(QCloseEvent* event)
 {
     // Asks about every modified tab; one Cancel keeps the window open.
     if (m_tabs->closeAllTabs()) {
+        if (m_viewPersistence) {
+            m_viewPersistence->flush(); // do not rely on the destructor running at exit
+        }
         event->accept();
     } else {
         event->ignore();

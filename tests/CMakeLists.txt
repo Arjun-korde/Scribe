@@ -53,3 +53,4 @@ scribe_add_qt_test(scribe_search_commands_tests SearchCommandsTest.cpp scribe_ed
 scribe_add_qt_test(scribe_gotoline_dialog_tests GoToLineDialogTest.cpp scribe_ui)
 scribe_add_qt_test(scribe_editorsearch_tests EditorSearchTest.cpp scribe_editor)
 scribe_add_qt_test(scribe_findbar_tests FindBarTest.cpp scribe_editor)
+scribe_add_qt_test(scribe_viewsettings_persistence_tests ViewSettingsPersistenceTest.cpp scribe_editor)

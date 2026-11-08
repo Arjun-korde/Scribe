@@ -31,6 +31,9 @@ private slots:
     void resetZoomGoesBackToOneHundred();
     void changingTheBaseFontKeepsTheZoom();
     void signalIsEmittedOnlyForRealChanges();
+    void setViewSettingsAppliesEverythingAtOnce();
+    void setViewSettingsClampsTheZoom();
+    void setViewSettingsEmitsOnceAndOnlyForRealChanges();
 
     void ctrlWheelZoomsAllTabsInTenPercentSteps();
     void wheelWithoutCtrlDoesNotZoom();
@@ -237,6 +240,55 @@ void ViewSettingsTest::smallTouchpadMovementsAddUpToANotch()
 
     wheel(tabs.currentEditor()->viewport(), 20, Qt::ControlModifier); // 120 units: one notch
     QCOMPARE(tabs.viewSettings().zoomPercent, 110);
+}
+
+void ViewSettingsTest::setViewSettingsAppliesEverythingAtOnce()
+{
+    EditorTabs tabs;
+    tabs.addEditor();
+
+    ViewSettings settings;
+    settings.wordWrap = false;
+    settings.zoomPercent = 150;
+    settings.font = QFont(QStringLiteral("Courier New"));
+    settings.font.setPointSizeF(10.0);
+    tabs.setViewSettings(settings);
+
+    QCOMPARE(tabs.viewSettings(), settings);
+    for (int i = 0; i < tabs.count(); ++i) {
+        QCOMPARE(tabs.editorAt(i)->lineWrapMode(), QPlainTextEdit::NoWrap);
+        QCOMPARE(tabs.editorAt(i)->font().pointSizeF(), 15.0);
+    }
+}
+
+void ViewSettingsTest::setViewSettingsClampsTheZoom()
+{
+    EditorTabs tabs;
+    ViewSettings settings;
+
+    settings.zoomPercent = 9000;
+    tabs.setViewSettings(settings);
+    QCOMPARE(tabs.viewSettings().zoomPercent, 500);
+
+    settings.zoomPercent = -4;
+    tabs.setViewSettings(settings);
+    QCOMPARE(tabs.viewSettings().zoomPercent, 10);
+}
+
+void ViewSettingsTest::setViewSettingsEmitsOnceAndOnlyForRealChanges()
+{
+    EditorTabs tabs;
+    QSignalSpy spy(&tabs, &EditorTabs::viewSettingsChanged);
+
+    ViewSettings settings;
+    settings.wordWrap = false;
+    settings.zoomPercent = 130;
+    settings.font.setPointSizeF(14.0); // three things differ ...
+    tabs.setViewSettings(settings);
+    QCOMPARE(spy.count(), 1); // ... but listeners hear about it once
+
+    tabs.setViewSettings(settings); // same again
+    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_MAIN(ViewSettingsTest)

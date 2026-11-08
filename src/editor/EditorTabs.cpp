@@ -156,6 +156,13 @@ void EditorTabs::previousTab()
     }
 }
 
+void EditorTabs::setViewSettings(const ViewSettings& settings)
+{
+    ViewSettings clamped = settings;
+    clamped.zoomPercent = ViewSettings::clampZoom(clamped.zoomPercent);
+    changeViewSettings(clamped);
+}
+
 void EditorTabs::setWordWrap(bool wrap)
 {
     ViewSettings settings = m_viewSettings;
