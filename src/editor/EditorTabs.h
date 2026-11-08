@@ -73,6 +73,7 @@ public:
     void setViewSettings(const ViewSettings& settings);
 
     void setWordWrap(bool wrap);
+    void setStatusBarVisible(bool visible);
 
     /// Changes the font family and size; the current zoom stays on top of it.
     void setBaseFont(const QFont& font);

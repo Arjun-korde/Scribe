@@ -2,13 +2,11 @@
 
 #include "EditorTabs.h"
 
-#include <QStatusBar>
-
 namespace scribe::editor
 {
 
 void ViewCommands::registerIn(core::CommandRegistry& registry, EditorTabs& tabs,
-                              QStatusBar& statusBar, const FontChooser& chooseFont)
+                              const FontChooser& chooseFont)
 {
     using core::Command;
 
@@ -83,12 +81,10 @@ void ViewCommands::registerIn(core::CommandRegistry& registry, EditorTabs& tabs,
         .id = kStatusBar,
         .title = tr("&Status Bar"),
         .shortcut = {},
-        // isHidden() is the explicit "hide" request, unlike isVisible() which is also false while
-        // the whole window is not on screen.
-        .callback = [&statusBar] { statusBar.setVisible(statusBar.isHidden()); },
+        .callback = [&tabs] { tabs.setStatusBarVisible(!tabs.viewSettings().statusBarVisible); },
         .enabled = true,
         .enabledWhen = {},
-        .checkedWhen = [&statusBar] { return !statusBar.isHidden(); },
+        .checkedWhen = [&tabs] { return tabs.viewSettings().statusBarVisible; },
         .alternateShortcut = {},
     });
 }

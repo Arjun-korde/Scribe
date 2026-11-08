@@ -130,6 +130,7 @@ private slots:
 
     void aWindowWithASettingsStoreStartsWithTheSavedViewSettings();
     void viewChangesAreSavedWhenTheWindowCloses();
+    void theStatusBarAndFindOptionsAreRemembered();
     void aSecondWindowStartsWhereTheFirstLeftOff();
     void theFontChosenInTheDialogIsRemembered();
     void zoomFromTheMouseWheelIsRemembered();
@@ -1507,6 +1508,26 @@ void MainWindowTest::aWindowWithASettingsStoreStartsWithTheSavedViewSettings()
     QCOMPARE(window.editor()->font().pointSizeF(), 14.0 * 140 / 100);
     window.commands().run("file.new"); // and so does a tab opened later
     QCOMPARE(window.editor()->lineWrapMode(), QPlainTextEdit::NoWrap);
+}
+
+void MainWindowTest::theStatusBarAndFindOptionsAreRemembered()
+{
+    {
+        scribe::core::SettingsManager settings(path("scribe.ini"));
+        MainWindow window(scriptedDialogs(), &settings);
+        window.show();
+        window.commands().run("view.statusBar"); // hide it
+        window.findBar()->setMatchCase(true);
+        window.findBar()->setWrapAround(false);
+        QVERIFY(window.close());
+    }
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow again(scriptedDialogs(), &settings);
+    again.show();
+    QVERIFY(again.statusBar()->isHidden());
+    QVERIFY(!again.commands().isChecked("view.statusBar"));
+    QVERIFY(again.findBar()->matchCase());
+    QVERIFY(!again.findBar()->wrapAround());
 }
 
 void MainWindowTest::viewChangesAreSavedWhenTheWindowCloses()

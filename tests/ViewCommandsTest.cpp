@@ -4,7 +4,6 @@
 #include "EditorTabs.h"
 #include "EditorWidget.h"
 
-#include <QStatusBar>
 #include <QWidget>
 #include <QtTest>
 
@@ -32,12 +31,10 @@ private slots:
     void statusBarCommandShowsAndHidesTheBar();
 
 private:
-    // A registry wired to real tabs and a status bar, with a font dialog the test controls.
+    // A registry wired to real tabs, with a font dialog the test controls.
     struct Fixture
     {
         EditorTabs tabs;
-        QWidget host; // the real status bar is a child of the main window, not a top-level widget
-        QStatusBar bar{&host};
         CommandRegistry registry;
         std::optional<QFont> answer;
         QFont askedWith;
@@ -53,7 +50,7 @@ private:
                     return answer;
                 };
             }
-            ViewCommands::registerIn(registry, tabs, bar, chooser);
+            ViewCommands::registerIn(registry, tabs, chooser);
         }
 
         bool run(QLatin1String id) const { return registry.run(id); }
@@ -190,14 +187,15 @@ void ViewCommandsTest::fontCommandIsUnavailableWithoutADialog()
 void ViewCommandsTest::statusBarCommandShowsAndHidesTheBar()
 {
     Fixture f;
-    QVERIFY(f.checked(ViewCommands::kStatusBar)); // not hidden by anyone
+    QVERIFY(f.checked(ViewCommands::kStatusBar)); // shown by default
+    QVERIFY(f.tabs.viewSettings().statusBarVisible);
 
     QVERIFY(f.run(ViewCommands::kStatusBar));
-    QVERIFY(f.bar.isHidden());
+    QVERIFY(!f.tabs.viewSettings().statusBarVisible); // the setting; the window hides the widget
     QVERIFY(!f.checked(ViewCommands::kStatusBar));
 
     QVERIFY(f.run(ViewCommands::kStatusBar));
-    QVERIFY(!f.bar.isHidden());
+    QVERIFY(f.tabs.viewSettings().statusBarVisible);
     QVERIFY(f.checked(ViewCommands::kStatusBar));
 }
 

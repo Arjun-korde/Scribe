@@ -79,7 +79,7 @@ Effort assumes part-time work and can be adjusted.
 - [x] Encoding detection and handling: UTF-8 (with and without BOM), UTF-16 LE/BE, ANSI
 - [x] Line-ending detection and preservation: CRLF, LF, CR
 - [x] Convert line endings; Save with a different encoding
-- [ ] Core architecture: `Document`, `IDocumentBackend` (in-memory implementation), `CommandRegistry` (done), `SettingsManager` (pending)
+- [ ] Core architecture: `Document`, `IDocumentBackend` (in-memory implementation), `CommandRegistry` (done), `SettingsManager` (done)
 
 **Tests:** encoding detection, line-ending detection and conversion, document load/save round trips.
 
@@ -100,7 +100,7 @@ Effort assumes part-time work and can be adjusted.
 - [ ] Autosave and crash recovery (periodic snapshots to `%LOCALAPPDATA%`)
 - [ ] External change detection (`QFileSystemWatcher`): prompt to reload
 - [ ] Read-only and locked file handling with a "Save as" fallback
-- [ ] Persist window size, position, and preferences
+- [x] Persist window size, position, and preferences
 - [ ] Settings dialog (font, theme, defaults for encoding and line endings)
 - [ ] Reopen with encoding **[stretch]**
 

@@ -20,8 +20,14 @@ class EditorStatusBar;
 class FindBar;
 class EditorTabs;
 class EditorWidget;
+class FindBarPersistence;
 class ViewSettingsPersistence;
 } // namespace scribe::editor
+
+namespace scribe::app
+{
+class WindowPlacementPersistence;
+}
 
 /// The main window: a menu bar and a row of editor tabs. Every menu entry runs a command from the
 /// CommandRegistry, so shortcuts, menus and later the command palette share the same actions.
@@ -35,8 +41,8 @@ public:
     explicit MainWindow(FileDialogs dialogs, QWidget* parent = nullptr);
 
     /// With a settings store the window starts with the saved view settings (word wrap, font,
-    /// zoom) and saves changes to them. `settings` may be null, which saves nothing, and must
-    /// outlive the window.
+    /// zoom, status bar), find options and size and position, and saves changes to them. `settings`
+    /// may be null, which saves nothing, and must outlive the window.
     MainWindow(FileDialogs dialogs, scribe::core::SettingsManager* settings,
                QWidget* parent = nullptr);
     ~MainWindow() override;
@@ -74,4 +80,6 @@ private:
     std::unique_ptr<DocumentController> m_controller;
     // Loads and saves the view settings; it only needs the settings store, not the widgets.
     std::unique_ptr<scribe::editor::ViewSettingsPersistence> m_viewPersistence;
+    std::unique_ptr<scribe::editor::FindBarPersistence> m_findPersistence;
+    std::unique_ptr<scribe::app::WindowPlacementPersistence> m_placementPersistence;
 };

@@ -16,6 +16,7 @@ namespace scribe::editor
 ///
 ///   [view]
 ///   wordWrap=true
+///   statusBar=true
 ///   fontFamily=Cascadia Mono
 ///   fontSize=11
 ///   fontWeight=400
@@ -30,6 +31,7 @@ class ViewSettingsStore
 {
 public:
     static constexpr QLatin1String kWordWrapKey{"view/wordWrap"};
+    static constexpr QLatin1String kStatusBarKey{"view/statusBar"};
     static constexpr QLatin1String kFontFamilyKey{"view/fontFamily"};
     static constexpr QLatin1String kFontSizeKey{"view/fontSize"};
     static constexpr QLatin1String kFontWeightKey{"view/fontWeight"};

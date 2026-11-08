@@ -44,12 +44,17 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 - Drag and drop: drop one or more files from Explorer onto the tab strip or any editor to open them,
   one tab each, with the last one active. A file that is already open is switched to, and one that
   fails shows its own error. Folders are ignored, and dragging or dropping text still works.
-- Remembered settings: word wrap, the font (family, size, bold, italic) and the zoom are saved and
-  restored the next time Scribe starts. They are kept in a plain, editable file,
+- Remembered settings: word wrap, the font (family, size, bold, italic), the zoom, whether the
+  status bar is shown, the Find options (Match case, Wrap around) and the window's size, position
+  and maximized state are saved and restored the next time Scribe starts. A window that no longer
+  fits the screen is shrunk and moved into view, and one that was on a monitor that is no longer
+  connected opens at the default size and place, so it is never out of reach. Everything is kept in
+  a plain, editable file,
   `%APPDATA%\Scribe\scribe.ini`. Changes are saved a moment after you stop making them (so turning
   the mouse wheel through many zoom steps writes once) and again when the window closes. A missing,
   damaged or hand-edited file never prevents startup: every bad value just falls back to its
-  default, and if the file cannot be written Scribe carries on without saving.
+  default, and if the file cannot be written Scribe carries on without saving. The text you search
+  for is not remembered.
 - The window title shows the file name, with a `*` while there are unsaved changes.
 - Text encoding detection for UTF-8 (with and without BOM), UTF-16 LE/BE and ANSI. Files are saved
   back in the encoding they were opened in, including the BOM.

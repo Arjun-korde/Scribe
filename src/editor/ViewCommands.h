@@ -9,8 +9,6 @@
 #include <functional>
 #include <optional>
 
-class QStatusBar;
-
 namespace scribe::editor
 {
 
@@ -34,10 +32,11 @@ public:
     /// Asks the user for a font, starting from `current`. std::nullopt means the user cancelled.
     using FontChooser = std::function<std::optional<QFont>(const QFont& current)>;
 
-    /// Adds the view commands to `registry`. The commands keep references to `tabs` and
-    /// `statusBar`, which must outlive every call to registry.run(), isEnabled() or isChecked().
-    /// Without a `chooseFont` the Font command is unavailable.
-    static void registerIn(core::CommandRegistry& registry, EditorTabs& tabs, QStatusBar& statusBar,
+    /// Adds the view commands to `registry`. The commands keep a reference to `tabs`, which must
+    /// outlive every call to registry.run(), isEnabled() or isChecked(). Without a `chooseFont`
+    /// the Font command is unavailable. The Status Bar command only changes the setting in `tabs`;
+    /// the window shows or hides its status bar when that setting changes.
+    static void registerIn(core::CommandRegistry& registry, EditorTabs& tabs,
                            const FontChooser& chooseFont);
 };
 

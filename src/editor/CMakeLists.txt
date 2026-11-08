@@ -23,6 +23,8 @@ add_library(scribe_editor STATIC
     EditorSearch.cpp
     FindBar.h
     FindBar.cpp
+    FindBarPersistence.h
+    FindBarPersistence.cpp
     EditorStatusBar.h
     EditorStatusBar.cpp
 )

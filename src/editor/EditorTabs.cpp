@@ -163,6 +163,13 @@ void EditorTabs::setViewSettings(const ViewSettings& settings)
     changeViewSettings(clamped);
 }
 
+void EditorTabs::setStatusBarVisible(bool visible)
+{
+    ViewSettings settings = m_viewSettings;
+    settings.statusBarVisible = visible;
+    changeViewSettings(settings);
+}
+
 void EditorTabs::setWordWrap(bool wrap)
 {
     ViewSettings settings = m_viewSettings;

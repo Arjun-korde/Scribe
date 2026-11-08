@@ -38,6 +38,8 @@ private slots:
     void boldAndItalicAreRemembered();
     void theFileIsReadableAndUsesTheViewSection();
     void aHandEditedFileIsLoaded();
+    void theStatusBarSettingRoundTrips();
+    void aDamagedStatusBarValueGivesTheDefault();
     void invalidValuesGiveDefaultsButDoNotSpoilTheOthers();
     void zoomOutsideTheRangeGivesTheDefault();
     void fontSizeLimitsAreChecked();
@@ -204,6 +206,29 @@ void ViewSettingsPersistenceTest::aHandEditedFileIsLoaded()
     QCOMPARE(loaded.zoomPercent, 130);
     QCOMPARE(loaded.font.pointSizeF(), 15.0);
     QVERIFY(loaded.font.italic());
+}
+
+void ViewSettingsPersistenceTest::theStatusBarSettingRoundTrips()
+{
+    QVERIFY(ViewSettings().statusBarVisible); // shown unless the user hides it
+    ViewSettings view;
+    view.statusBarVisible = false;
+    {
+        SettingsManager settings(iniPath());
+        ViewSettingsStore::save(settings, view);
+    }
+    QVERIFY(iniText().contains(QStringLiteral("statusBar=false")));
+    const SettingsManager settings(iniPath());
+    QVERIFY(!ViewSettingsStore::load(settings).statusBarVisible);
+}
+
+void ViewSettingsPersistenceTest::aDamagedStatusBarValueGivesTheDefault()
+{
+    writeIni("[view]\nstatusBar=sometimes\nzoom=130\n");
+    const SettingsManager settings(iniPath());
+    const ViewSettings loaded = ViewSettingsStore::load(settings);
+    QVERIFY(loaded.statusBarVisible);
+    QCOMPARE(loaded.zoomPercent, 130);
 }
 
 void ViewSettingsPersistenceTest::invalidValuesGiveDefaultsButDoNotSpoilTheOthers()

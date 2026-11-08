@@ -23,6 +23,7 @@ ViewSettings ViewSettingsStore::load(const core::SettingsManager& settings)
     ViewSettings view; // starts with every default
 
     view.wordWrap = settings.boolValue(kWordWrapKey, view.wordWrap);
+    view.statusBarVisible = settings.boolValue(kStatusBarKey, view.statusBarVisible);
     view.zoomPercent = settings.intValue(kZoomKey, view.zoomPercent, ViewSettings::kMinZoomPercent,
                                          ViewSettings::kMaxZoomPercent);
 
@@ -50,6 +51,7 @@ ViewSettings ViewSettingsStore::load(const core::SettingsManager& settings)
 void ViewSettingsStore::save(core::SettingsManager& settings, const ViewSettings& view)
 {
     settings.setBool(kWordWrapKey, view.wordWrap);
+    settings.setBool(kStatusBarKey, view.statusBarVisible);
     settings.setInt(kZoomKey, view.zoomPercent);
 
     settings.setString(kFontFamilyKey, view.font.family());
