@@ -19,6 +19,7 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QDir>
+#include <QFileInfo>
 #include <QKeySequence>
 #include <QMenu>
 #include <QMenuBar>
@@ -268,14 +269,31 @@ void MainWindow::fillRecentMenu()
 
         QAction* action = m_recentMenu->addAction(QStringLiteral("&%1  %2").arg(digit, shown));
         action->setToolTip(QDir::toNativeSeparators(path));
-        connect(action, &QAction::triggered, this,
-                [this, path] { m_controller->openFiles({path}); });
+        connect(action, &QAction::triggered, this, [this, path] { openRecent(path); });
         ++number;
     }
 
     m_recentMenu->addSeparator();
     addCommandAction(m_recentMenu, FileCommands::kClearRecent)
         ->setEnabled(m_commands.isEnabled(FileCommands::kClearRecent));
+}
+
+void MainWindow::openRecent(const QString& path)
+{
+    // A file that was moved or deleted since it was used is reported once and forgotten, so the
+    // entry does not keep failing. Any other problem (no permission, a locked file) is left to
+    // the normal open, which explains it and keeps the entry: the file may work later.
+    if (!QFileInfo::exists(path)) {
+        m_recent->remove(path);
+        if (m_dialogs.showError) {
+            m_dialogs.showError(
+                this, tr("Scribe"),
+                tr("\"%1\" no longer exists. It was removed from the recent files list.")
+                    .arg(QDir::toNativeSeparators(path)));
+        }
+        return;
+    }
+    m_controller->openFiles({path});
 }
 
 void MainWindow::refreshMenuState(QMenu* menu)

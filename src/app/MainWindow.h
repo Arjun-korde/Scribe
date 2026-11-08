@@ -69,6 +69,7 @@ private:
     QAction* addCommandAction(QMenu* menu, const QString& commandId);
     void updateTitle();
     void fillRecentMenu();
+    void openRecent(const QString& path);
 
     scribe::core::CommandRegistry m_commands;
     scribe::editor::EditorTabs* m_tabs = nullptr;           // owned by Qt as the central widget

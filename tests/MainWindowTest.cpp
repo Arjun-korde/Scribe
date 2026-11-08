@@ -151,6 +151,10 @@ private slots:
     void theListIsRememberedBetweenRuns();
     void aWindowWithoutAStoreStillShowsTheListWhileRunning();
     void clearedListIsRememberedAsEmpty();
+    void aMissingRecentFileIsReportedOnceAndRemoved();
+    void otherEntriesSurviveAMissingOne();
+    void aMissingRecentFileRemovalIsRemembered();
+    void aRecentFileThatCannotBeReadKeepsItsEntry();
 
 private:
     QString path(const QString& name) const { return m_dir->filePath(name); }
@@ -1898,6 +1902,102 @@ void MainWindowTest::clearedListIsRememberedAsEmpty()
     scribe::core::SettingsManager settings(path("scribe.ini"));
     MainWindow second(scriptedDialogs(), &settings);
     QVERIFY(!recentMenu(second)->menuAction()->isEnabled());
+}
+
+namespace
+{
+
+QAction* entryEndingWith(QMenu* menu, const QString& path)
+{
+    for (QAction* action : menu->actions()) {
+        if (action->text().endsWith(QDir::toNativeSeparators(path))) {
+            return action;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void MainWindowTest::aMissingRecentFileIsReportedOnceAndRemoved()
+{
+    write("gone.txt", "x");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("gone.txt");
+    window.commands().run("file.open");
+    window.commands().run("tab.closeAll");
+    QVERIFY(QFile::remove(path("gone.txt")));
+
+    QAction* entry = entryEndingWith(recentMenu(window), path("gone.txt"));
+    QVERIFY(entry != nullptr);
+    entry->trigger();
+
+    QCOMPARE(m_errors.size(), 1); // one message, not an open error on top of it
+    QVERIFY2(m_errors.first().contains(QStringLiteral("no longer exists")),
+             qPrintable(m_errors.first()));
+    QVERIFY(m_errors.first().contains(QDir::toNativeSeparators(path("gone.txt"))));
+    QCOMPARE(window.tabCount(), 1);
+    QVERIFY(!window.editor()->fileDocument().filePath().contains(QStringLiteral("gone")));
+    QVERIFY(!recentMenu(window)->menuAction()->isEnabled()); // and it is gone from the list
+}
+
+void MainWindowTest::otherEntriesSurviveAMissingOne()
+{
+    write("keep.txt", "k");
+    write("gone.txt", "g");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("keep.txt");
+    window.commands().run("file.open");
+    m_openAnswer = path("gone.txt");
+    window.commands().run("file.open");
+    QVERIFY(QFile::remove(path("gone.txt")));
+
+    entryEndingWith(recentMenu(window), path("gone.txt"))->trigger();
+
+    const QStringList texts = entryTexts(recentMenu(window));
+    QCOMPARE(texts.size(), 1);
+    QVERIFY(texts.first().endsWith(QDir::toNativeSeparators(path("keep.txt"))));
+}
+
+void MainWindowTest::aMissingRecentFileRemovalIsRemembered()
+{
+    write("gone.txt", "g");
+    {
+        scribe::core::SettingsManager settings(path("scribe.ini"));
+        MainWindow first(scriptedDialogs(), &settings);
+        first.show();
+        m_openAnswer = path("gone.txt");
+        first.commands().run("file.open");
+        QVERIFY(QFile::remove(path("gone.txt")));
+        entryEndingWith(recentMenu(first), path("gone.txt"))->trigger();
+        QVERIFY(first.close());
+    }
+    scribe::core::SettingsManager settings(path("scribe.ini"));
+    MainWindow second(scriptedDialogs(), &settings);
+    QVERIFY(!recentMenu(second)->menuAction()->isEnabled());
+}
+
+void MainWindowTest::aRecentFileThatCannotBeReadKeepsItsEntry()
+{
+    // A folder where a file used to be: it exists, but cannot be opened as text. This is a problem
+    // the file might not have later, so the entry stays and the normal open error is shown.
+    write("thing.txt", "x");
+    MainWindow window(scriptedDialogs());
+    window.show();
+    m_openAnswer = path("thing.txt");
+    window.commands().run("file.open");
+    window.commands().run("tab.closeAll");
+    QVERIFY(QFile::remove(path("thing.txt")));
+    QVERIFY(QDir(m_dir->path()).mkdir(QStringLiteral("thing.txt")));
+
+    entryEndingWith(recentMenu(window), path("thing.txt"))->trigger();
+
+    QCOMPARE(m_errors.size(), 1);
+    QVERIFY2(!m_errors.first().contains(QStringLiteral("no longer exists")),
+             qPrintable(m_errors.first()));
+    QVERIFY(recentMenu(window)->menuAction()->isEnabled()); // still listed
 }
 
 QTEST_MAIN(MainWindowTest)
