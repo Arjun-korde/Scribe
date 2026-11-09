@@ -43,8 +43,8 @@ Use a saved file `a.txt` and an untitled tab with some typed text. A tab is "mod
 
 | # | Steps | Expected |
 |---|---|---|
-| 1 | Type in a tab, then close it with `Ctrl+W` | A dialog asks `Do you want to save changes to "<name>"?` with **Save** (the default button), **Don't Save** and **Cancel**. The tab being asked about is active. |
-| 2 | In that dialog press `Esc`, then click the window's close button | Both act as **Cancel**: the tab stays, text and `*` unchanged. |
+| 1 | Type in a tab, then close it with `Ctrl+W` | A card dialog asks `Save changes to <name>?` with **Save** (the default button, filled), **Don't save** and **Cancel**. The tab being asked about is active. |
+| 2 | In that dialog press `Esc`, then reopen it and press `Alt+F4` | Both act as **Cancel**: the tab stays, text and `*` unchanged. (The dialog has no title bar, so no close button.) |
 | 3 | Choose **Don't Save** | The tab closes. The file on disk is unchanged. |
 | 4 | Choose **Save** for a saved file | The file is written, then the tab closes. |
 | 5 | Choose **Save** for an untitled tab | A Save As dialog opens. Cancel it: the tab stays open and modified. Pick a name: the file is saved and the tab closes. |
@@ -55,6 +55,12 @@ Use a saved file `a.txt` and an untitled tab with some typed text. A tab is "mod
 | 10 | With modified tabs: File > Exit, then the window's X button, then `Alt+F4` | Each asks for every modified tab. **Cancel** keeps the window open. Answering for all tabs closes the window. |
 | 11 | `Ctrl+N` and `Ctrl+O` while the current tab is modified | No question: they add a tab and never touch the modified one. |
 | 12 | Close the window when every tab is unmodified | It closes at once, without a dialog. |
+| 13 | Look at the dialog (light and dark, compare with Figma `Dialog / Unsaved changes`) | A 440 px wide card with a 1 px outline, rounded corners and a soft shadow, no title bar. Title in semibold, the line about losing changes muted below it, then the three buttons 8 px apart, left aligned, 28 px high. **Save** is filled with the accent color. |
+| 14 | Press `Enter`; press `Alt+S`, `Alt+N` | `Enter` and `Alt+S` save, `Alt+N` is Don't save. The mnemonic letters are underlined after `Alt` is pressed. |
+| 15 | Hover and press each button, and move through them with `Tab` | Each has a hover and a pressed color; the focused one has an accent border. |
+| 16 | Drag the dialog by its text or empty area | The dialog moves. Dragging a button does not. |
+| 17 | Close a file with a very long name (about 100 characters) that has changes | The title stays on one line with the middle of the name cut with an ellipsis; the extension is still visible. |
+| 18 | Change Windows between light and dark while the app is open, then open the dialog | It uses the new colors. |
 
 ## Edit menu
 

@@ -25,6 +25,9 @@ private slots:
         QCOMPARE(t.accent, QColor("#0f6cbd"));
         QCOMPARE(t.hover, QColor("#e9e9e9"));
         QCOMPARE(t.pressed, QColor("#dddddd"));
+        QCOMPARE(t.accentHover, QColor("#115ea3"));
+        QCOMPARE(t.accentPressed, QColor("#0c4b86"));
+        QCOMPARE(t.outlineStrong, QColor("#858585"));
     }
 
     void darkMatchesFigmaTokens()
@@ -40,6 +43,9 @@ private slots:
         QCOMPARE(t.accent, QColor("#60cdff"));
         QCOMPARE(t.hover, QColor("#353535"));
         QCOMPARE(t.pressed, QColor("#444444"));
+        QCOMPARE(t.accentHover, QColor("#7bd6ff"));
+        QCOMPARE(t.accentPressed, QColor("#4dbaeb"));
+        QCOMPARE(t.outlineStrong, QColor("#858585"));
     }
 
     void paletteMapsTokensToRoles()

@@ -6,6 +6,11 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 ## [Unreleased]
 
 ### Changed
+- The unsaved-changes prompt follows the Figma design: a rounded card with a shadow instead of a
+  system message box, "Save changes to <name>?", and the buttons Save (filled, the default), Don't
+  save and Cancel. A very long file name is shortened in the middle. Esc and Alt+F4 still mean Cancel.
+- Buttons in all dialogs follow the design: 28 px high, outlined, with the default button filled in
+  the accent color, and hover, pressed, focus and disabled states.
 - Menus follow the Figma design: rounded panels with an outline and shadow, 28 px rows, the shortcut
   muted on the right, a rounded hover fill, faded disabled rows, thin separators, and check marks and
   submenu arrows in the same style. This applies to the menu bar, Open Recent, and the pop-ups from

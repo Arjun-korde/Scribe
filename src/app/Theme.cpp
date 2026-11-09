@@ -21,6 +21,9 @@ Theme Theme::light()
         .accent = QColor(0x0f, 0x6c, 0xbd),
         .hover = QColor(0xe9, 0xe9, 0xe9),
         .pressed = QColor(0xdd, 0xdd, 0xdd),
+        .accentHover = QColor(0x11, 0x5e, 0xa3),
+        .accentPressed = QColor(0x0c, 0x4b, 0x86),
+        .outlineStrong = QColor(0x85, 0x85, 0x85),
     };
 }
 
@@ -38,6 +41,9 @@ Theme Theme::dark()
         .accent = QColor(0x60, 0xcd, 0xff),
         .hover = QColor(0x35, 0x35, 0x35),
         .pressed = QColor(0x44, 0x44, 0x44),
+        .accentHover = QColor(0x7b, 0xd6, 0xff),
+        .accentPressed = QColor(0x4d, 0xba, 0xeb),
+        .outlineStrong = QColor(0x85, 0x85, 0x85),
     };
 }
 
@@ -96,6 +102,26 @@ QStatusBar QLabel, QStatusBar QToolButton { color: @textMuted@; font-size: 12px;
 QStatusBar QToolButton { border: none; border-radius: 4px; padding: 2px 4px; }
 QStatusBar QToolButton:hover { background: @hover@; }
 QStatusBar QToolButton:pressed { background: @pressed@; }
+
+/* Buttons: 28 px high (26 + the 1 px border), 16 px between the border and the text. The default
+   button of a dialog is the filled one. */
+QPushButton {
+    min-height: 26px; padding: 0 15px; font-size: 13px;
+    background: transparent; color: @textPrimary@;
+    border: 1px solid @outlineStrong@; border-radius: 4px;
+}
+QPushButton:hover { background: @hover@; }
+QPushButton:pressed { background: @pressed@; }
+QPushButton:focus { border-color: @accent@; }
+QPushButton:disabled { color: @textMuted@; border-color: @outline@; background: transparent; }
+QPushButton:default { background: @accent@; color: @surface@; border-color: @accent@; }
+QPushButton:default:hover { background: @accentHover@; border-color: @accentHover@; }
+QPushButton:default:pressed { background: @accentPressed@; border-color: @accentPressed@; }
+QPushButton:default:disabled { background: @hover@; color: @textMuted@; border-color: @hover@; }
+
+/* Dialogs drawn as cards (CardDialog). */
+QLabel#dialogTitle { font-size: 16px; font-weight: 600; color: @textPrimary@; }
+QLabel#dialogBody { font-size: 13px; color: @textMuted@; }
 )");
 
     const QList<std::pair<QString, QColor>> tokens = {
@@ -107,6 +133,10 @@ QStatusBar QToolButton:pressed { background: @pressed@; }
         {QStringLiteral("selection"), selection},
         {QStringLiteral("hover"), hover},
         {QStringLiteral("pressed"), pressed},
+        {QStringLiteral("accent"), accent},
+        {QStringLiteral("accentHover"), accentHover},
+        {QStringLiteral("accentPressed"), accentPressed},
+        {QStringLiteral("outlineStrong"), outlineStrong},
     };
     for (const auto& [token, color] : tokens) {
         css.replace(QLatin1Char('@') + token + QLatin1Char('@'), color.name(QColor::HexRgb));
