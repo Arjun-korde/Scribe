@@ -91,9 +91,9 @@ Effort assumes part-time work and can be adjusted.
 
 **Goal:** Feel like a native, trustworthy Windows application.
 
-- [ ] Dark and light themes, following the Windows setting
-- [ ] Dark title bar through DWM (`DWMWA_USE_IMMERSIVE_DARK_MODE`)
-- [ ] Per-monitor High-DPI correctness
+- [x] Dark and light themes, following the Windows setting
+- [x] Dark title bar through DWM (`DWMWA_USE_IMMERSIVE_DARK_MODE`)
+- [x] Per-monitor High-DPI correctness (code done; the mixed-scale manual test is still to be run)
 - [ ] Single instance: second launch sends its files to the running window
 - [ ] Command-line arguments: `scribe file.txt +42` (open at line 42)
 - [ ] Session restore: reopen tabs, cursor positions, and unsaved content on next launch

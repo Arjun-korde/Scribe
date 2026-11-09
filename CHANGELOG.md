@@ -6,6 +6,8 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 ## [Unreleased]
 
 ### Changed
+- Display scales such as 125% and 150% are used as they are, so text and controls stay sharp on each
+  monitor instead of being rounded to 100% or 200%.
 - The unsaved-changes prompt follows the Figma design: a rounded card with a shadow instead of a
   system message box, "Save changes to <name>?", and the buttons Save (filled, the default), Don't
   save and Cancel. A very long file name is shortened in the middle. Esc and Alt+F4 still mean Cancel.

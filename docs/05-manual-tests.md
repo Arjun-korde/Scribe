@@ -270,6 +270,17 @@ Compare the running window with the frames `Main Window / Light` and `Main Windo
 | 11 | Zoom in and out (`Ctrl`+wheel) | Numbers, text and band scale together and stay aligned. |
 | 12 | Look at the status bar | `Ln, Col` and the character count on the left. Encoding, line ending and zoom on the right. Encoding and line ending highlight on hover and still open their menus. |
 
+## High-DPI (needs a laptop screen plus an external monitor, or a second scale setting)
+
+Set the screens to different scales in Windows Settings > System > Display (for example 150% and 100%), or use one screen at 125%.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Start Scribe at 125% or 150% | Text, tab strip, status bar, line numbers and menus are sharp, not blurry, and in proportion (row heights are scaled, not squashed). |
+| 2 | Drag the window from the 150% screen to the 100% screen and back | The window redraws sharply on both screens. Fonts and controls resize to match each screen. There is no blurry frame that stays. |
+| 3 | Open a menu and a dialog on each screen | The 1 px outlines stay thin and visible. The rounded corners and shadow are intact. |
+| 4 | Maximize on each screen, then restart | The window comes back at the same place and size on the screen it was on. |
+
 ## Menus look (Figma "Editor Context Menu")
 
 Every menu uses the design of the Editor Context Menu frame (also in `Menus, states and dialogs`): the menu bar drop-downs, and the pop-ups that open from the Encoding and line ending segments of the status bar. Check in light and dark.
