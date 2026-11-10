@@ -8,6 +8,8 @@
 #include <functional>
 #include <memory>
 
+class QToolButton;
+
 namespace scribe::editor
 {
 
@@ -105,8 +107,13 @@ signals:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
+    void tabInserted(int index) override;
+    void tabRemoved(int index) override;
 
 private:
+    /// Keeps the "+" button right after the last tab, as in the design.
+    void positionNewTabButton();
+
     EditorWidget* adopt(std::unique_ptr<EditorWidget> editor);
     void refreshTab(const EditorWidget* editor);
     void removeAndDelete(QWidget* page);
@@ -128,6 +135,7 @@ private:
     CloseGuard m_closeGuard;
     ViewSettings m_viewSettings;
     FileDropFilter* m_dropFilter = nullptr; // owned by this widget
+    QToolButton* m_newTabButton = nullptr;  // child of the tab bar
 };
 
 } // namespace scribe::editor

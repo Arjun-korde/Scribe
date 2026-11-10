@@ -20,10 +20,19 @@ add_library(scribe_ui STATIC
     Theme.cpp
     ThemeManager.h
     ThemeManager.cpp
+    MenuStyle.h
+    MenuStyle.cpp
+    CardDialog.h
+    CardDialog.cpp
+    UnsavedChangesDialog.h
+    UnsavedChangesDialog.cpp
 )
 
 target_include_directories(scribe_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(scribe_ui PUBLIC scribe_editor scribe_core Qt6::Widgets)
+if(WIN32)
+    target_link_libraries(scribe_ui PUBLIC dwmapi) # rounded corners on menu pop-ups
+endif()
 
 add_executable(scribe WIN32
     main.cpp

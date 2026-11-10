@@ -21,6 +21,11 @@ struct Theme
     QColor currentLine; ///< Background of the line with the cursor.
     QColor selection;   ///< Background of selected text.
     QColor accent;
+    QColor hover;   ///< Background of a chrome control under the mouse.
+    QColor pressed; ///< Background of a chrome control while the mouse button is down.
+    QColor accentHover;
+    QColor accentPressed;
+    QColor outlineStrong; ///< Border of a button and other controls that must be easy to see.
 
     static Theme light();
     static Theme dark();

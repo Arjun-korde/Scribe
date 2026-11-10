@@ -1,4 +1,5 @@
 #include "Theme.h"
+
 #include "ThemeManager.h"
 
 #include <QtTest>
@@ -22,6 +23,11 @@ private slots:
         QCOMPARE(t.currentLine, QColor("#f5f5f5"));
         QCOMPARE(t.selection, QColor("#cce4f7"));
         QCOMPARE(t.accent, QColor("#0f6cbd"));
+        QCOMPARE(t.hover, QColor("#e9e9e9"));
+        QCOMPARE(t.pressed, QColor("#dddddd"));
+        QCOMPARE(t.accentHover, QColor("#115ea3"));
+        QCOMPARE(t.accentPressed, QColor("#0c4b86"));
+        QCOMPARE(t.outlineStrong, QColor("#858585"));
     }
 
     void darkMatchesFigmaTokens()
@@ -35,6 +41,11 @@ private slots:
         QCOMPARE(t.currentLine, QColor("#262626"));
         QCOMPARE(t.selection, QColor("#264f78"));
         QCOMPARE(t.accent, QColor("#60cdff"));
+        QCOMPARE(t.hover, QColor("#353535"));
+        QCOMPARE(t.pressed, QColor("#444444"));
+        QCOMPARE(t.accentHover, QColor("#7bd6ff"));
+        QCOMPARE(t.accentPressed, QColor("#4dbaeb"));
+        QCOMPARE(t.outlineStrong, QColor("#858585"));
     }
 
     void paletteMapsTokensToRoles()
@@ -56,8 +67,8 @@ private slots:
         QVERIFY(css.contains("#f3f3f3")); // surfaceChrome
         QVERIFY(css.contains("#e0e0e0")); // outline
         QVERIFY(css.contains("#cce4f7")); // selection
-        QVERIFY(!css.contains("%1"));
-        QVERIFY(!css.contains("%6"));
+        QVERIFY(css.contains("#e9e9e9")); // hover
+        QVERIFY(!css.contains('@'));      // every @token@ was replaced
     }
 
     void colorSchemePicksTheme()

@@ -43,8 +43,8 @@ Use a saved file `a.txt` and an untitled tab with some typed text. A tab is "mod
 
 | # | Steps | Expected |
 |---|---|---|
-| 1 | Type in a tab, then close it with `Ctrl+W` | A dialog asks `Do you want to save changes to "<name>"?` with **Save** (the default button), **Don't Save** and **Cancel**. The tab being asked about is active. |
-| 2 | In that dialog press `Esc`, then click the window's close button | Both act as **Cancel**: the tab stays, text and `*` unchanged. |
+| 1 | Type in a tab, then close it with `Ctrl+W` | A card dialog asks `Save changes to <name>?` with **Save** (the default button, filled), **Don't save** and **Cancel**. The tab being asked about is active. |
+| 2 | In that dialog press `Esc`, then reopen it and press `Alt+F4` | Both act as **Cancel**: the tab stays, text and `*` unchanged. (The dialog has no title bar, so no close button.) |
 | 3 | Choose **Don't Save** | The tab closes. The file on disk is unchanged. |
 | 4 | Choose **Save** for a saved file | The file is written, then the tab closes. |
 | 5 | Choose **Save** for an untitled tab | A Save As dialog opens. Cancel it: the tab stays open and modified. Pick a name: the file is saved and the tab closes. |
@@ -55,6 +55,12 @@ Use a saved file `a.txt` and an untitled tab with some typed text. A tab is "mod
 | 10 | With modified tabs: File > Exit, then the window's X button, then `Alt+F4` | Each asks for every modified tab. **Cancel** keeps the window open. Answering for all tabs closes the window. |
 | 11 | `Ctrl+N` and `Ctrl+O` while the current tab is modified | No question: they add a tab and never touch the modified one. |
 | 12 | Close the window when every tab is unmodified | It closes at once, without a dialog. |
+| 13 | Look at the dialog (light and dark, compare with Figma `Dialog / Unsaved changes`) | A 440 px wide card with a 1 px outline, rounded corners and a soft shadow, no title bar. Title in semibold, the line about losing changes muted below it, then the three buttons 8 px apart, left aligned, 28 px high. **Save** is filled with the accent color. |
+| 14 | Press `Enter`; press `Alt+S`, `Alt+N` | `Enter` and `Alt+S` save, `Alt+N` is Don't save. The mnemonic letters are underlined after `Alt` is pressed. |
+| 15 | Hover and press each button, and move through them with `Tab` | Each has a hover and a pressed color; the focused one has an accent border. |
+| 16 | Drag the dialog by its text or empty area | The dialog moves. Dragging a button does not. |
+| 17 | Close a file with a very long name (about 100 characters) that has changes | The title stays on one line with the middle of the name cut with an ellipsis; the extension is still visible. |
+| 18 | Change Windows between light and dark while the app is open, then open the dialog | It uses the new colors. |
 
 ## Edit menu
 
@@ -244,6 +250,55 @@ The list is kept in `scribe.ini` under `[recent]`.
 | 13 | Put a file on a USB drive or network share, open it, disconnect the drive, choose the entry | Treated like a missing file (row 11): one message, entry removed. |
 | 14 | Edit `scribe.ini` by hand: add an empty entry, a relative path and a repeated path to `[recent]` | Scribe starts normally; the bad entries are not shown and the repeat appears once. |
 | 15 | Open a file by two different spellings (for example `C:\a\..\b.txt` and `c:\B.TXT`) | It is listed once. |
+
+## Main window look (Figma "Main Window", light and dark)
+
+Compare the running window with the frames `Main Window / Light` and `Main Window / Dark` in the Figma file (link in `docs/04-ui-design.md`). Run it in both themes: Windows Settings > Personalization > Colors > Choose your mode. The theme follows the setting while the app is running.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Switch Windows between light and dark while Scribe is open | Colors change at once, with no restart. Text stays readable in both. |
+| 2 | Look at the tab strip | The first tab starts 8 px from the left edge. Tabs are 168 px wide, the file name is left-aligned, and the close `×` is on the right. The active tab has the editor's color and rounded top corners. A `+` button follows the last tab. |
+| 3 | Hover an inactive tab, and the `×` and `+` buttons | Each gets the hover background. Pressing a button darkens it. |
+| 4 | Click `+` | A new tab is added to the right and made active. The `+` moves along with the last tab. |
+| 5 | Click the `×` of a tab that is not active | That tab closes (after the unsaved-changes prompt if it is modified), not the active one. |
+| 6 | Open a long file name | The name is cut with `...` before the `×`, never under it. |
+| 7 | Look at the editor | Line numbers in a left gutter, right-aligned, muted; the number of the caret's line is in the main text color. The caret's line has a lighter band across the gutter and the text. The area below the last line is the editor's color, not the window's. |
+| 8 | Type enough lines to scroll, then page up and down | Numbers stay level with their lines. Past 99 lines the gutter widens; past 999 it widens again. |
+| 9 | Turn on Word Wrap and type one very long line | One number, beside the first row. The band covers all rows of that line. |
+| 10 | Select text, then Find a word | The selection and the match mark use the selection color and remain readable. The band does not hide either. |
+| 11 | Zoom in and out (`Ctrl`+wheel) | Numbers, text and band scale together and stay aligned. |
+| 12 | Look at the status bar | `Ln, Col` and the character count on the left. Encoding, line ending and zoom on the right. Encoding and line ending highlight on hover and still open their menus. |
+
+## High-DPI (needs a laptop screen plus an external monitor, or a second scale setting)
+
+Set the screens to different scales in Windows Settings > System > Display (for example 150% and 100%), or use one screen at 125%.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Start Scribe at 125% or 150% | Text, tab strip, status bar, line numbers and menus are sharp, not blurry, and in proportion (row heights are scaled, not squashed). |
+| 2 | Drag the window from the 150% screen to the 100% screen and back | The window redraws sharply on both screens. Fonts and controls resize to match each screen. There is no blurry frame that stays. |
+| 3 | Open a menu and a dialog on each screen | The 1 px outlines stay thin and visible. The rounded corners and shadow are intact. |
+| 4 | Maximize on each screen, then restart | The window comes back at the same place and size on the screen it was on. |
+
+## Menus look (Figma "Editor Context Menu")
+
+Every menu uses the design of the Editor Context Menu frame (also in `Menus, states and dialogs`): the menu bar drop-downs, and the pop-ups that open from the Encoding and line ending segments of the status bar. Check in light and dark.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Open File, Edit, Search, View and Encoding | Each is a panel with a 1 px outline, rounded corners (Windows 11) and a soft shadow. Rows are 28 px tall with 12 px side padding and at least 250 px wide (the design's 260 px was narrowed on request). Labels are 14 px, shortcuts 13 px, and the menu bar names 13 px. |
+| 2 | Look at a row with a shortcut (Edit > Paste) | The name is on the left in the main text color, the shortcut on the right, smaller and muted. |
+| 3 | Move the mouse over rows, then use the arrow keys | The row under the mouse or the keyboard gets the rounded hover fill. Only one row at a time. |
+| 4 | Open Edit with nothing selected | Cut, Copy and Delete are faded (40%), do not get the hover fill, and cannot be chosen. |
+| 5 | Look at the separators | A 1 px line in the outline color, with space above and below. The row spacing stays even around them. |
+| 6 | Open View | Word Wrap and Status Bar show a check mark when on, in a column to the left. All rows of that menu are indented by the same amount. Turn one off and reopen: the mark is gone. |
+| 7 | Open Encoding | The chosen encoding and the chosen line ending have a check mark. |
+| 8 | File > Open Recent | The row has an arrow on the right. The submenu opens next to it in the same design. A long path does not run over the arrow. |
+| 9 | Press `Alt`, then `F` | The menu opens and the mnemonic letters are underlined. Without `Alt` they are not underlined. |
+| 10 | Click the encoding and the line ending in the status bar | The pop-up opens above the segment in the same design, with the same check marks as the Encoding menu. |
+| 11 | Switch Windows between light and dark with a menu closed, then open one | The menu uses the new colors. |
+| 12 | Open a menu on Windows 10, if available | The same, but the corners are square (Windows 10 does not round pop-ups). |
 
 ## Error handling
 

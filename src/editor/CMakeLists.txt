@@ -3,6 +3,8 @@ add_library(scribe_editor STATIC
     EditorWidget.cpp
     EditorTabs.h
     EditorTabs.cpp
+    EditorTabBar.h
+    EditorTabBar.cpp
     ViewSettings.h
     ViewSettings.cpp
     ViewSettingsStore.h

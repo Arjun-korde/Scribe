@@ -1,5 +1,9 @@
 #include "Theme.h"
 
+#include <QList>
+
+#include <utility>
+
 namespace scribe::app
 {
 
@@ -15,6 +19,11 @@ Theme Theme::light()
         .currentLine = QColor(0xf5, 0xf5, 0xf5),
         .selection = QColor(0xcc, 0xe4, 0xf7),
         .accent = QColor(0x0f, 0x6c, 0xbd),
+        .hover = QColor(0xe9, 0xe9, 0xe9),
+        .pressed = QColor(0xdd, 0xdd, 0xdd),
+        .accentHover = QColor(0x11, 0x5e, 0xa3),
+        .accentPressed = QColor(0x0c, 0x4b, 0x86),
+        .outlineStrong = QColor(0x85, 0x85, 0x85),
     };
 }
 
@@ -30,6 +39,11 @@ Theme Theme::dark()
         .currentLine = QColor(0x26, 0x26, 0x26),
         .selection = QColor(0x26, 0x4f, 0x78),
         .accent = QColor(0x60, 0xcd, 0xff),
+        .hover = QColor(0x35, 0x35, 0x35),
+        .pressed = QColor(0x44, 0x44, 0x44),
+        .accentHover = QColor(0x7b, 0xd6, 0xff),
+        .accentPressed = QColor(0x4d, 0xba, 0xeb),
+        .outlineStrong = QColor(0x85, 0x85, 0x85),
     };
 }
 
@@ -51,6 +65,7 @@ QPalette Theme::palette() const
     p.setColor(QPalette::HighlightedText, textPrimary);
     p.setColor(QPalette::Link, accent);
     p.setColor(QPalette::Mid, outline);
+    p.setColor(QPalette::Midlight, hover); // the tab bar paints its own hovered tab with this
 
     for (const auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText}) {
         p.setColor(QPalette::Disabled, role, textMuted);
@@ -61,33 +76,72 @@ QPalette Theme::palette() const
 QString Theme::styleSheet() const
 {
     // Sizes follow the Figma main window: tab strip 36 px with 32 px tabs, status bar 26 px.
-    const QString css = QStringLiteral(R"(
-QMenuBar { background: %1; color: %2; }
-QMenuBar::item { padding: 4px 8px; background: transparent; }
+    // @name@ is replaced by the theme's colour of that name.
+    QString css = QStringLiteral(R"(
+QMenuBar { background: @surfaceChrome@; color: @textPrimary@; font-size: 14px; }
+QMenuBar::item { padding: 3px 8px; margin: 4px 0; background: transparent; border-radius: 4px; }
+QMenuBar::item:selected { background: @hover@; }
+QMenuBar::item:pressed { background: @pressed@; }
 
-QTabWidget::pane { border: none; border-top: 1px solid %3; }
-QTabBar { background: %1; }
-QTabBar::tab {
-    height: 32px; min-width: 120px; max-width: 168px;
-    padding: 0 8px 0 12px; margin-top: 4px;
-    background: transparent; color: %4;
-    border: none; border-top-left-radius: 4px; border-top-right-radius: 4px;
+QTabWidget::pane { border: none; border-top: 1px solid @outline@; }
+QToolButton#newTabButton, QToolButton#tabCloseButton {
+    border: none; border-radius: 4px; background: transparent; color: @textMuted@;
 }
-QTabBar::tab:selected { background: %5; color: %2; }
+QToolButton#newTabButton { font-size: 16px; }
+QToolButton#tabCloseButton { font-size: 14px; }
+QToolButton#newTabButton:hover, QToolButton#tabCloseButton:hover { background: @hover@; }
+QToolButton#newTabButton:pressed, QToolButton#tabCloseButton:pressed { background: @pressed@; }
 
-QPlainTextEdit {
-    background: %5; color: %2; border: none;
-    selection-background-color: %6; selection-color: %2;
-}
+QPlainTextEdit { color: @textPrimary@; border: none;
+    selection-background-color: @selection@; selection-color: @textPrimary@; }
 
-QStatusBar { background: %1; color: %4; border-top: 1px solid %3; min-height: 26px; }
+QStatusBar { background: @surfaceChrome@; color: @textMuted@; border-top: 1px solid @outline@;
+    min-height: 26px; }
 QStatusBar::item { border: none; }
-QStatusBar QLabel, QStatusBar QToolButton { color: %4; font-size: 12px; }
+QStatusBar QLabel, QStatusBar QToolButton { color: @textMuted@; font-size: 12px; }
+QStatusBar QToolButton { border: none; border-radius: 4px; padding: 2px 4px; }
+QStatusBar QToolButton:hover { background: @hover@; }
+QStatusBar QToolButton:pressed { background: @pressed@; }
+
+/* Buttons: 28 px high (26 + the 1 px border), 16 px between the border and the text. The default
+   button of a dialog is the filled one. */
+QPushButton {
+    min-height: 26px; padding: 0 15px; font-size: 13px;
+    background: transparent; color: @textPrimary@;
+    border: 1px solid @outlineStrong@; border-radius: 4px;
+}
+QPushButton:hover { background: @hover@; }
+QPushButton:pressed { background: @pressed@; }
+QPushButton:focus { border-color: @accent@; }
+QPushButton:disabled { color: @textMuted@; border-color: @outline@; background: transparent; }
+QPushButton:default { background: @accent@; color: @surface@; border-color: @accent@; }
+QPushButton:default:hover { background: @accentHover@; border-color: @accentHover@; }
+QPushButton:default:pressed { background: @accentPressed@; border-color: @accentPressed@; }
+QPushButton:default:disabled { background: @hover@; color: @textMuted@; border-color: @hover@; }
+
+/* Dialogs drawn as cards (CardDialog). */
+QLabel#dialogTitle { font-size: 16px; font-weight: 600; color: @textPrimary@; }
+QLabel#dialogBody { font-size: 13px; color: @textMuted@; }
 )");
 
-    const auto hex = [](const QColor& c) { return c.name(QColor::HexRgb); };
-    return css.arg(hex(surfaceChrome), hex(textPrimary), hex(outline), hex(textMuted), hex(surface),
-                   hex(selection));
+    const QList<std::pair<QString, QColor>> tokens = {
+        {QStringLiteral("surfaceChrome"), surfaceChrome},
+        {QStringLiteral("surface"), surface},
+        {QStringLiteral("textPrimary"), textPrimary},
+        {QStringLiteral("textMuted"), textMuted},
+        {QStringLiteral("outline"), outline},
+        {QStringLiteral("selection"), selection},
+        {QStringLiteral("hover"), hover},
+        {QStringLiteral("pressed"), pressed},
+        {QStringLiteral("accent"), accent},
+        {QStringLiteral("accentHover"), accentHover},
+        {QStringLiteral("accentPressed"), accentPressed},
+        {QStringLiteral("outlineStrong"), outlineStrong},
+    };
+    for (const auto& [token, color] : tokens) {
+        css.replace(QLatin1Char('@') + token + QLatin1Char('@'), color.name(QColor::HexRgb));
+    }
+    return css;
 }
 
 } // namespace scribe::app

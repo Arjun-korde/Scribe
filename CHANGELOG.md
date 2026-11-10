@@ -5,6 +5,24 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 
 ## [Unreleased]
 
+### Changed
+- Display scales such as 125% and 150% are used as they are, so text and controls stay sharp on each
+  monitor instead of being rounded to 100% or 200%.
+- The unsaved-changes prompt follows the Figma design: a rounded card with a shadow instead of a
+  system message box, "Save changes to <name>?", and the buttons Save (filled, the default), Don't
+  save and Cancel. A very long file name is shortened in the middle. Esc and Alt+F4 still mean Cancel.
+- Buttons in all dialogs follow the design: 28 px high, outlined, with the default button filled in
+  the accent color, and hover, pressed, focus and disabled states.
+- Menus follow the Figma design: rounded panels with an outline and shadow, 28 px rows, the shortcut
+  muted on the right, a rounded hover fill, faded disabled rows, thin separators, and check marks and
+  submenu arrows in the same style. This applies to the menu bar, Open Recent, and the pop-ups from
+  the status bar.
+- The main window follows the Figma design: light and dark themes that follow the Windows setting
+  (and change while the app runs), a tab strip with left-aligned names, a muted close button, hover
+  states and a `+` button, a line-number gutter with a highlighted current line, and a status bar
+  with the cursor position and character count on the left and the encoding, line ending and zoom
+  on the right.
+
 ## [0.1.0] - 2026-11-08
 
 Release candidate: the automated tests and checks pass on both presets, but the manual tests in
