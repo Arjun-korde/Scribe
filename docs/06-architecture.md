@@ -303,9 +303,11 @@ classDiagram
 | File | Role | Talks to |
 |---|---|---|
 | `main.cpp` | Creates `QApplication`, sets name/version/icon, shows `MainWindow`, runs the event loop. | `MainWindow` |
-| `FileDialogs.h/.cpp` | `FileDialogs` = struct of 4 callbacks (open path, save path, show error, confirm discard) + `UnsavedChoice {Save, Discard, Cancel}`. `defaultFileDialogs()` fills them with real `QFileDialog`/`QMessageBox`. Tests pass scripted fakes so nothing blocks. | Used by `DocumentController`, `MainWindow` |
+| `FileDialogs.h/.cpp` | `FileDialogs` = struct of callbacks (open path, save path, show error, confirm discard, confirm external change, font, line number) + `UnsavedChoice {Save, Discard, Cancel}`. `defaultFileDialogs()` fills them with real `QFileDialog`/`QMessageBox`. Tests pass scripted fakes so nothing blocks. | Used by `DocumentController`, `MainWindow` |
 | `DocumentController.h/.cpp` | **The policy brain.** Implements new/open/save/saveAs, turns `IoResult` errors into user messages (`showIoError`), and installs itself as `EditorTabs`' close guard: modified tab → ask → Save (a cancelled/failed save keeps the tab) / Discard / Cancel. Not a `QObject`. | `EditorTabs`, `EditorWidget`, `FileDialogs` |
 | `FileCommands.h/.cpp` | Registers `file.new/open/save/saveAs/exit`. Callbacks call the controller; Exit calls `window.close()`. | `CommandRegistry`, `DocumentController` |
+| `ExternalChangeMonitor.h/.cpp` | Notices files changed or deleted by other programs. Compares each document's `FileStamp` (taken at load/save) with the file now. Checks run after the `QFileSystemWatcher` (file + its folder) goes quiet for 300 ms, and when the app becomes active. Asks one question at a time through `FileDialogs::confirmExternalChange` (Reload / Keep / Close tab), then calls `EditorWidget::reload()`, `acknowledgeDiskChange()` or `keepAsUnsavedCopy()`. Own saves are ignored because saving refreshes the stamp. | `EditorTabs`, `EditorWidget`, `FileDialogs`, `FileStamp` |
+| `ExternalChangeDialog.h/.cpp` | The card dialog for it ("a.txt changed on disk" / "was deleted"). The default button is the safe one whenever the other choice would lose edits; Esc means Keep. | `CardDialog` |
 | `MainWindow.h/.cpp` | Builds `EditorTabs` as the central widget, creates the controller, registers commands, builds File/View menus **from the registry**, keeps the window title in sync (`name[*] - Scribe`), and routes `closeEvent` through `closeAllTabs()`. | everything in app + editor + core |
 
 ### Build / support files

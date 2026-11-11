@@ -2,6 +2,7 @@
 
 #include <QFileInfo>
 #include <QPainter>
+#include <QScrollBar>
 #include <QTextCursor>
 #include <QWheelEvent>
 
@@ -95,6 +96,50 @@ core::IoResult EditorWidget::openFile(const QString& path)
     emit stateChanged();
     emit fileUsed(path);
     return result;
+}
+
+core::IoResult EditorWidget::reload()
+{
+    const QString path = m_fileDocument.filePath();
+    if (path.isEmpty()) {
+        return {core::DocumentError::CannotRead, QStringLiteral("no file path")};
+    }
+
+    core::Document loaded;
+    const core::IoResult result = loaded.load(path);
+    if (!result.ok()) {
+        return result;
+    }
+
+    const QTextCursor before = textCursor();
+    const int line = before.blockNumber();
+    const int column = before.positionInBlock();
+    const int scroll = verticalScrollBar()->value();
+
+    m_fileDocument = std::move(loaded);
+    setPlainText(m_fileDocument.backend().text());
+    document()->setModified(false);
+
+    const QTextBlock block = document()->findBlockByNumber(std::min(line, lineCount() - 1));
+    QTextCursor after(block);
+    after.setPosition(block.position() + std::min(column, block.length() - 1));
+    setTextCursor(after);
+    verticalScrollBar()->setValue(scroll);
+
+    emit stateChanged();
+    return result;
+}
+
+void EditorWidget::acknowledgeDiskChange()
+{
+    m_fileDocument.refreshDiskStamp();
+}
+
+void EditorWidget::keepAsUnsavedCopy()
+{
+    m_fileDocument.refreshDiskStamp();
+    document()->setModified(true);
+    emit stateChanged();
 }
 
 core::IoResult EditorWidget::saveFile()

@@ -13,6 +13,7 @@ add_executable(scribe_gtests
     SettingsManagerTest.cpp
     WindowPlacementTest.cpp
     RecentFilesTest.cpp
+    FileStampTest.cpp
 )
 target_link_libraries(scribe_gtests PRIVATE scribe_core GTest::gtest GTest::gtest_main)
 add_test(NAME scribe_gtests COMMAND scribe_gtests)
@@ -61,3 +62,5 @@ scribe_add_qt_test(scribe_window_placement_tests WindowPlacementPersistenceTest.
 scribe_add_qt_test(scribe_theme_tests ThemeTest.cpp scribe_ui)
 scribe_add_qt_test(scribe_tabstrip_tests TabStripTest.cpp scribe_editor)
 scribe_add_qt_test(scribe_menustyle_tests MenuStyleTest.cpp scribe_ui)
+scribe_add_qt_test(scribe_extchange_monitor_tests ExternalChangeMonitorTest.cpp scribe_ui)
+scribe_add_qt_test(scribe_extchange_dialog_tests ExternalChangeDialogTest.cpp scribe_ui)

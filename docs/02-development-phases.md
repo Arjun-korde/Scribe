@@ -98,7 +98,7 @@ Effort assumes part-time work and can be adjusted.
 - [ ] Command-line arguments: `scribe file.txt +42` (open at line 42)
 - [ ] Session restore: reopen tabs, cursor positions, and unsaved content on next launch
 - [ ] Autosave and crash recovery (periodic snapshots to `%LOCALAPPDATA%`)
-- [ ] External change detection (`QFileSystemWatcher`): prompt to reload
+- [x] External change detection (`QFileSystemWatcher`): prompt to reload
 - [ ] Read-only and locked file handling with a "Save as" fallback
 - [x] Persist window size, position, and preferences
 - [ ] Settings dialog (font, theme, defaults for encoding and line endings)

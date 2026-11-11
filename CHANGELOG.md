@@ -5,6 +5,17 @@ All notable user-visible changes to Scribe are listed here, newest first. The fo
 
 ## [Unreleased]
 
+### Added
+- Files changed by other programs are noticed. When a file that is open in a tab is changed, a card
+  dialog asks "<name> changed on disk" and offers Reload (the default) or Keep current. If the tab
+  has unsaved changes, the dialog says that reloading discards them and Keep current is the default,
+  so Enter and Esc never lose your edits. A reload keeps the caret and scroll position and re-reads
+  the encoding and line ending. When the file is deleted or moved away, the dialog offers Keep (the
+  tab stays, marked as modified, and Save recreates the file) or Close tab. The same change is never
+  asked about twice, and Scribe's own saves are not changes. Changes are checked a moment after the
+  other program stops writing, and again whenever you return to the Scribe window (which also covers
+  network drives). Several changed files are asked about one at a time.
+
 ### Changed
 - Display scales such as 125% and 150% are used as they are, so text and controls stay sharp on each
   monitor instead of being rounded to 100% or 200%.

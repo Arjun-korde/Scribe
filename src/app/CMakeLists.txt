@@ -26,6 +26,10 @@ add_library(scribe_ui STATIC
     CardDialog.cpp
     UnsavedChangesDialog.h
     UnsavedChangesDialog.cpp
+    ExternalChangeDialog.h
+    ExternalChangeDialog.cpp
+    ExternalChangeMonitor.h
+    ExternalChangeMonitor.cpp
 )
 
 target_include_directories(scribe_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

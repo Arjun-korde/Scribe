@@ -300,6 +300,29 @@ Every menu uses the design of the Editor Context Menu frame (also in `Menus, sta
 | 11 | Switch Windows between light and dark with a menu closed, then open one | The menu uses the new colors. |
 | 12 | Open a menu on Windows 10, if available | The same, but the corners are square (Windows 10 does not round pop-ups). |
 
+## Files changed by other programs
+
+Use a second program (Notepad, or `echo more>> file.txt` in a terminal) to change files that are open in Scribe. Give the dialog a few seconds: Scribe waits about 0.3 s after the last change before asking.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | Open `a.txt` in Scribe. Edit and save it in Notepad | Coming back to Scribe (or after a moment, if Scribe is in front) a card dialog says `a.txt changed on disk` / `Reload it to see the new version?`. **Reload** is the default button. |
+| 2 | Press **Reload** (or Enter) | The new text appears. The caret stays on the same line and column where possible. The tab has no `*`. Undo does nothing. |
+| 3 | Change the file again and press **Keep current** | Scribe's text is unchanged. No second dialog for the same change, even after switching to another program and back. |
+| 4 | Change the file a third time | The dialog appears again (it is a new change). |
+| 5 | Type something in Scribe (tab shows `*`), then change the file elsewhere | The dialog says `You have unsaved changes here. Reloading will discard them.` **Keep current** is the default button, so Enter keeps your text. Esc keeps it too. |
+| 6 | Same, but press **Reload** | Your edits are gone, the file's text is shown, no `*`. |
+| 7 | Save a file from Scribe | No dialog: Scribe's own save is not a change. Same for Save As. |
+| 8 | Change the file while Scribe is minimized, then restore the window | The dialog appears when the window becomes active. |
+| 9 | Delete the open file in Explorer | A dialog says `a.txt was deleted` with **Close tab** and **Keep**. **Keep** is the default. |
+| 10 | Press **Keep** | The text stays and the tab shows `*`. `Ctrl+S` recreates the file; no dialog appears for it. |
+| 11 | Delete another open file and press **Close tab** | The tab closes. If it had unsaved changes, the usual Save / Don't save / Cancel prompt comes first; Cancel keeps the tab and does not ask again. |
+| 12 | Change two open files, in different tabs, before returning to Scribe | One dialog at a time, in tab order. The tab being asked about is shown behind the dialog. |
+| 13 | Make a program save by replacing the file (for example VS Code, or Notepad), twice in a row | Both changes are noticed. |
+| 14 | Open a file from a network drive and change it from another computer | Noticed when Scribe is activated (the watcher is not needed). |
+| 15 | Look at the dialog in light and dark | Same card as the unsaved-changes dialog: 440 px, outline, rounded corners, shadow, no title bar, buttons 28 px high with the default one filled. A very long file name is shortened in the middle. |
+| 16 | Untitled tabs | Never asked about. |
+
 ## Error handling
 
 | # | Steps | Expected |

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Encoding.h"
+#include "FileStamp.h"
 #include "IDocumentBackend.h"
 #include "LineEnding.h"
 
@@ -49,6 +50,14 @@ public:
 
     bool isModified() const { return m_modified; }
 
+    /// How the file looked on disk when it was last loaded or saved by this document. Compare it
+    /// with FileStamp::of(filePath()) to find out whether another program changed the file since.
+    const FileStamp& diskStamp() const { return m_diskStamp; }
+
+    /// Takes the file's current state as the known one, so a change that was already noticed (and
+    /// deliberately ignored) is not reported again. Does not read the file.
+    void refreshDiskStamp();
+
     const EncodingInfo& encoding() const { return m_encoding; }
     LineEnding lineEnding() const { return m_lineEnding; }
 
@@ -77,6 +86,7 @@ private:
     QString m_filePath;
     EncodingInfo m_encoding;
     LineEnding m_lineEnding = LineEnding::Crlf;
+    FileStamp m_diskStamp;
     bool m_modified = false;
 };
 

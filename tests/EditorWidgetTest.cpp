@@ -1,5 +1,7 @@
 #include "EditorWidget.h"
 
+#include "FileStamp.h"
+
 #include <QFile>
 #include <QScrollBar>
 #include <QSignalSpy>
@@ -34,6 +36,18 @@ private slots:
     void changingFormatCountsAsModified();
     void newFileResetsEverything();
     void stateChangedIsEmitted();
+
+    void reloadReadsTheChangedFileAndDropsEdits();
+    void reloadKeepsCaretLineAndColumn();
+    void reloadClampsTheCaretWhenTheFileGotShorter();
+    void reloadPicksUpANewEncodingAndLineEnding();
+    void reloadClearsUndoHistory();
+    void reloadOfADeletedFileFailsAndKeepsContent();
+    void reloadWithoutPathFails();
+    void reloadDoesNotEmitFileUsed();
+    void reloadMakesTheDiskStateKnown();
+    void acknowledgeDiskChangeKeepsTextAndForgetsTheChange();
+    void keepAsUnsavedCopyMakesADeletedFileModifiedAndSavable();
 
     void lineCountIsOnePlusTheLineBreaks();
     void aLongLineIsOneLineEvenWhenItWraps();
@@ -394,6 +408,160 @@ void EditorWidgetTest::aJumpToAVisibleLineDoesNotScroll()
 
     QCOMPARE(editor.verticalScrollBar()->value(), 0); // the view stayed where it was
     QCOMPARE(editor.currentLine(), 3);
+}
+
+void EditorWidgetTest::reloadReadsTheChangedFileAndDropsEdits()
+{
+    write("a.txt", "old");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    editor.insertPlainText(QStringLiteral("my edit "));
+    QVERIFY(editor.isModified());
+
+    write("a.txt", "new text from another program");
+    QVERIFY(editor.reload().ok());
+
+    QCOMPARE(editor.toPlainText(), QStringLiteral("new text from another program"));
+    QVERIFY(!editor.isModified());
+}
+
+void EditorWidgetTest::reloadKeepsCaretLineAndColumn()
+{
+    write("a.txt", "one\ntwo\nthree\nfour");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    QVERIFY(editor.goToLine(3));
+    editor.moveCursor(QTextCursor::Right);
+    editor.moveCursor(QTextCursor::Right); // line 3, column 2
+
+    write("a.txt", "ONE\nTWO\nTHREE!\nFOUR\nFIVE");
+    QVERIFY(editor.reload().ok());
+
+    QCOMPARE(editor.textCursor().blockNumber(), 2);
+    QCOMPARE(editor.textCursor().positionInBlock(), 2);
+}
+
+void EditorWidgetTest::reloadClampsTheCaretWhenTheFileGotShorter()
+{
+    write("a.txt", "one\ntwo\nthree\nfour");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    editor.moveCursor(QTextCursor::End); // line 4, column 4
+
+    write("a.txt", "ab");
+    QVERIFY(editor.reload().ok());
+
+    QCOMPARE(editor.textCursor().blockNumber(), 0);
+    QCOMPARE(editor.textCursor().positionInBlock(), 2);
+}
+
+void EditorWidgetTest::reloadPicksUpANewEncodingAndLineEnding()
+{
+    write("a.txt", "one\ntwo");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    QCOMPARE(editor.fileDocument().lineEnding(), LineEnding::Lf);
+
+    write("a.txt", QByteArray("\xEF\xBB\xBF") + "one\r\ntwo");
+    QVERIFY(editor.reload().ok());
+
+    QCOMPARE(editor.fileDocument().lineEnding(), LineEnding::Crlf);
+    QCOMPARE(editor.fileDocument().encoding().encoding, Encoding::Utf8);
+    QVERIFY(editor.fileDocument().encoding().hasBom);
+    QCOMPARE(editor.toPlainText(), QStringLiteral("one\ntwo"));
+}
+
+void EditorWidgetTest::reloadClearsUndoHistory()
+{
+    write("a.txt", "loaded");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    editor.insertPlainText(QStringLiteral("typed"));
+
+    write("a.txt", "reloaded");
+    QVERIFY(editor.reload().ok());
+
+    editor.undo(); // must not bring back the old text or empty the document
+    QCOMPARE(editor.toPlainText(), QStringLiteral("reloaded"));
+}
+
+void EditorWidgetTest::reloadOfADeletedFileFailsAndKeepsContent()
+{
+    write("a.txt", "text");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    editor.insertPlainText(QStringLiteral("edit "));
+    QVERIFY(QFile::remove(path("a.txt")));
+
+    QCOMPARE(editor.reload().error, DocumentError::CannotRead);
+    QCOMPARE(editor.toPlainText(), QStringLiteral("edit text"));
+    QVERIFY(editor.isModified());
+}
+
+void EditorWidgetTest::reloadWithoutPathFails()
+{
+    EditorWidget editor;
+    editor.setPlainText(QStringLiteral("scratch"));
+    QCOMPARE(editor.reload().error, DocumentError::CannotRead);
+    QCOMPARE(editor.toPlainText(), QStringLiteral("scratch"));
+}
+
+void EditorWidgetTest::reloadDoesNotEmitFileUsed()
+{
+    write("a.txt", "one");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+
+    QSignalSpy used(&editor, &EditorWidget::fileUsed);
+    QSignalSpy state(&editor, &EditorWidget::stateChanged);
+    write("a.txt", "two");
+    QVERIFY(editor.reload().ok());
+
+    QCOMPARE(used.count(), 0); // the recent files list must not move for a reload
+    QVERIFY(state.count() >= 1);
+}
+
+void EditorWidgetTest::reloadMakesTheDiskStateKnown()
+{
+    write("a.txt", "one");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+
+    write("a.txt", "a different length");
+    QVERIFY(editor.fileDocument().diskStamp() != scribe::core::FileStamp::of(path("a.txt")));
+    QVERIFY(editor.reload().ok());
+    QCOMPARE(editor.fileDocument().diskStamp(), scribe::core::FileStamp::of(path("a.txt")));
+}
+
+void EditorWidgetTest::acknowledgeDiskChangeKeepsTextAndForgetsTheChange()
+{
+    write("a.txt", "one");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    editor.insertPlainText(QStringLiteral("mine "));
+
+    write("a.txt", "changed elsewhere");
+    editor.acknowledgeDiskChange();
+
+    QCOMPARE(editor.toPlainText(), QStringLiteral("mine one"));
+    QVERIFY(editor.isModified());
+    QCOMPARE(editor.fileDocument().diskStamp(), scribe::core::FileStamp::of(path("a.txt")));
+}
+
+void EditorWidgetTest::keepAsUnsavedCopyMakesADeletedFileModifiedAndSavable()
+{
+    write("a.txt", "text");
+    EditorWidget editor;
+    QVERIFY(editor.openFile(path("a.txt")).ok());
+    QVERIFY(!editor.isModified());
+    QVERIFY(QFile::remove(path("a.txt")));
+
+    editor.keepAsUnsavedCopy();
+    QVERIFY(editor.isModified());
+
+    QVERIFY(editor.saveFile().ok()); // recreates the file
+    QCOMPARE(read("a.txt"), QByteArray("text"));
+    QVERIFY(!editor.isModified());
 }
 
 QTEST_MAIN(EditorWidgetTest)

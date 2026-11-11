@@ -20,6 +20,8 @@ add_library(scribe_core STATIC
     WindowPlacement.cpp
     RecentFiles.h
     RecentFiles.cpp
+    FileStamp.h
+    FileStamp.cpp
 )
 
 target_include_directories(scribe_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

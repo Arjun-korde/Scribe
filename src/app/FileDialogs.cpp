@@ -1,5 +1,6 @@
 #include "FileDialogs.h"
 
+#include "ExternalChangeDialog.h"
 #include "GoToLineDialog.h"
 #include "UnsavedChangesDialog.h"
 
@@ -28,6 +29,14 @@ UnsavedChoice askAboutUnsavedChanges(QWidget* parent, const QString& documentNam
     return dialog.choice(); // Cancel unless a button said otherwise, so Esc never discards
 }
 
+ExternalChangeChoice askAboutExternalChange(QWidget* parent, const QString& documentName,
+                                            ExternalChangeKind kind, bool hasUnsavedChanges)
+{
+    scribe::app::ExternalChangeDialog dialog(documentName, kind, hasUnsavedChanges, parent);
+    dialog.exec();
+    return dialog.choice(); // Keep unless a button said otherwise, so Esc never reloads or closes
+}
+
 } // namespace
 
 FileDialogs defaultFileDialogs()
@@ -43,6 +52,7 @@ FileDialogs defaultFileDialogs()
         QMessageBox::warning(parent, title, message);
     };
     dialogs.confirmDiscard = askAboutUnsavedChanges;
+    dialogs.confirmExternalChange = askAboutExternalChange;
     dialogs.chooseFont = [](QWidget* parent, const QFont& current) -> std::optional<QFont> {
         bool accepted = false;
         const QFont font = QFontDialog::getFont(&accepted, current, parent, tr("Font"));

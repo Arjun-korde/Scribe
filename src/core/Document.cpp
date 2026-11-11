@@ -56,8 +56,15 @@ bool Document::remove(qsizetype pos, qsizetype count)
     return true;
 }
 
+void Document::refreshDiskStamp()
+{
+    m_diskStamp = FileStamp::of(m_filePath);
+}
+
 IoResult Document::load(const QString& path)
 {
+    // Stamped before reading, so a change made while the file is being read is still noticed.
+    const FileStamp stamp = FileStamp::of(path);
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         return {DocumentError::CannotRead, file.errorString()};
@@ -80,6 +87,7 @@ IoResult Document::load(const QString& path)
     m_backend->setText(convertLineEndings(text, LineEnding::Lf));
     m_encoding = encoding;
     m_filePath = path;
+    m_diskStamp = stamp;
     m_modified = false;
     return {};
 }
@@ -111,6 +119,7 @@ IoResult Document::saveAs(const QString& path)
     }
 
     m_filePath = path;
+    m_diskStamp = FileStamp::of(path); // after the rename: our own write is the known state
     m_modified = false;
     return {};
 }

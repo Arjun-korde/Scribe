@@ -39,6 +39,20 @@ public:
     /// Saves to the current path. A document without a path fails with CannotWrite.
     core::IoResult saveFile();
 
+    /// Reads the current file again, replacing the text, encoding and line ending, and drops any
+    /// unsaved changes and the undo history. The caret and scroll position stay where they were,
+    /// as far as the new text allows. On failure (no file path, unreadable file) the editor keeps
+    /// its content. Does not emit fileUsed(): the file was not newly opened.
+    core::IoResult reload();
+
+    /// The user chose to keep the text as it is although the file changed on disk: the changed
+    /// file becomes the known state, so it is not reported again. The next save overwrites it.
+    void acknowledgeDiskChange();
+
+    /// The file is gone but its text is kept: marks the editor modified, so it is saved again
+    /// (recreating the file) and closing it asks first.
+    void keepAsUnsavedCopy();
+
     /// Saves to `path`, which becomes the document's path on success.
     core::IoResult saveFileAs(const QString& path);
 

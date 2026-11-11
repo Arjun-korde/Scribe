@@ -9,6 +9,11 @@
 
 class DocumentController;
 
+namespace scribe::app
+{
+class ExternalChangeMonitor;
+}
+
 namespace scribe::core
 {
 class SettingsManager;
@@ -83,6 +88,8 @@ private:
     QList<QAction*> m_lineEndingActions;
     // Declared last, so it is destroyed first: it holds a guard installed on m_tabs.
     std::unique_ptr<DocumentController> m_controller;
+    // Asks what to do when another program changes an open file. Needs the dialogs and the tabs.
+    std::unique_ptr<scribe::app::ExternalChangeMonitor> m_externalChanges;
     // Loads and saves the view settings; it only needs the settings store, not the widgets.
     std::unique_ptr<scribe::editor::ViewSettingsPersistence> m_viewPersistence;
     std::unique_ptr<scribe::editor::FindBarPersistence> m_findPersistence;

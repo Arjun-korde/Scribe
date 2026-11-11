@@ -6,6 +6,7 @@
 #include "EditorTabs.h"
 #include "EditorWidget.h"
 #include "EncodingCommands.h"
+#include "ExternalChangeMonitor.h"
 #include "FileCommands.h"
 #include "FindBar.h"
 #include "FindBarPersistence.h"
@@ -97,6 +98,9 @@ MainWindow::MainWindow(FileDialogs dialogs, scribe::core::SettingsManager* setti
     connect(m_statusBar, &scribe::editor::EditorStatusBar::lineEndingClicked, this,
             [this](QWidget* anchor) { showChoices(anchor, m_lineEndingActions); });
     updateTitle();
+
+    m_externalChanges =
+        std::make_unique<scribe::app::ExternalChangeMonitor>(*m_tabs, m_dialogs, this);
 
     // The new window must start with the caret in the text, so that typing works at once. (The find
     // bar sits in the same layout, and without this the first focus can land elsewhere.)
